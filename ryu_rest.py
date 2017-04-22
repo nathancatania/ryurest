@@ -248,6 +248,7 @@ class ryuRest(object):
         return r.json()
 
 
+
     ## ##
     def get_table_features(self, DPID):
 
@@ -370,5 +371,5 @@ if __name__ == "__main__":
     R.get_stats_table(DPID)
     R.get_table_features(DPID)
     R.get_stats_port(DPID)
-    R.get_stats_port(DPID, 3)
-    R.get_stats_port(DPID, 4)
+    #R.get_stats_port(DPID, 3)
+    #R.get_stats_port(DPID, 4)

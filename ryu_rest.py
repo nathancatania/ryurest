@@ -28,7 +28,7 @@ class ryuRest(object):
             print "#### " + title + " ####"
         print "REST URI:"
         print rest_uri
-        print "Output:"
+        print "OUTPUT:"
         print str(r.json()) + '\n'
 
 
@@ -496,6 +496,210 @@ class ryuRest(object):
 
 
 
+    ## ##
+    #TODO: Handle Openflow versions
+    # OPENFLOW VERSION 1.0-1.3 ONLY
+    def get_queue_config(self, DPID, port=None):
+
+        '''
+        Description:
+        Get queues config of the switch which specified with Datapath ID and Port in URI. OpenFlow v1.0 - v1.3 ONLY.
+
+        Link:
+        http://ryu.readthedocs.io/en/latest/app/ofctl_rest.html#get-queues-config
+
+        Arguments:
+        DPID: Datapath ID (DPID) of the target switch.
+        port: [OPTIONAL] Specific port# to queue config for. If not specfied, info for all ports is returned.
+
+        Return value:
+        JSON structure containing the queue config. See link above for example message body.
+
+        Usage:
+        R = ryuRest()
+        content1 = R.get_queue_config('123917682136708', 3)    # Will get queue config for ONLY Port #3.
+        content1 = R.get_queue_config('123917682136708')       # Will get queue config for ALL ports.
+
+        Restrictions:
+        This API is depreciated in OpenFlow v1.4+. For v1.4+, use: get_queue_description()
+        '''
+
+        # Path: /stats/queueconfig/<DPID>[/portnumber] (API is DEPRECIATED in OpenFlow v1.4+)
+        rest_uri = self.API + "/stats/queueconfig/" + DPID
+
+        if port is None:
+            # No port# specified. Get queue info for all ports.
+
+            # Make call to REST API (GET)
+            r = requests.get(rest_uri)
+
+            # DEBUG MODE
+            if self.debug: self.debug_dump(rest_uri, r, "(OPENFLOW v1.0-1.3) GET QUEUE CONFIG: NO PORT SPECIFIED")
+
+            return r.json()
+        else:
+            # Port# has been specified. Retrieve info for this port only.
+
+            # Modify URI to filter port
+            rest_uri = rest_uri + '/' + str(port)   # TODO: Add try/catch in case port does not exist.
+
+            # Make call to REST API (GET)
+            r = requests.get(rest_uri)
+
+            # DEBUG MODE
+            if self.debug: self.debug_dump(rest_uri, r, "(OPENFLOW v1.0-1.3) GET QUEUE CONFIG: PORT #" + str(port) + " SPECIFIED")
+
+            return r.json()
+
+
+
+    ## ##
+    #TODO: Handle Openflow versions
+    # OPENFLOW VERSION 1.4+ ONLY
+    def get_queue_decription(self, DPID, port=None, queue=None):
+
+        '''
+        Description:
+        Get queues description of the switch which specified with Datapath ID, Port and Queue_id in URI. OpenFlow v1.4+ ONLY.
+
+        Link:
+        http://ryu.readthedocs.io/en/latest/app/ofctl_rest.html#get-queues-description
+
+        Arguments:
+        DPID: Datapath ID (DPID) of the target switch.
+        port: [OPTIONAL] Specific port# to grab queue descriptions for.
+        queue: [OPTIONAL] Specific Queue ID# to grab desc for. If not specified, get desc for ALL Queue IDs. If no port specified, will return desc for Queue ID matched on ALL ports.
+
+        Return value:
+        JSON structure containing queue descriptions on specified ports. See link above for example message body.
+
+        Usage:
+        R = ryuRest()
+        content = R.get_queue_description('123917682136708', port=3, queue=1)    # Will get desc for Queue ID == '1' on Port #3 only.
+        content = R.get_queue_description('123917682136708', port=3)        # Will get desc for ALL Queue IDs on Port #3 only.
+        content = R.get_queue_description('123917682136708', queue=1)       # Will get desc for Queue ID == '1' on ALL ports.
+        content = R.get_queue_description('123917682136708')                # Will get desc for ALL Queue IDs on ALL ports.
+
+        Restrictions:
+        This API is only compatible with OpenFlow v1.4+. For v1.0 - v1.3, use: get_queue_config()
+        '''
+
+        # Path: /stats/queuedesc/<DPID>[/portnumber[/<queue_id>]]
+        rest_uri = self.API + "/stats/queuedesc/" + DPID
+
+        if all(arg is None for arg in [port, queue]):
+            # No port# or queueID# specified. Dump ALL.
+
+            # Make call to REST API (GET)
+            r = requests.get(rest_uri)
+
+            # DEBUG MODE
+            if self.debug: self.debug_dump(rest_uri, r, "(OPENFLOW v1.4+) GET QUEUE DESCRIPTION: NO PORT# OR QUEUE ID# SPECIFIED")
+
+            return r.json()
+
+        elif any(arg is None for arg in [port, queue]):
+            # Only one of either queueID# or port# has been specified...
+
+            if queue is None:
+                # Port# has been specified. QueueID# has NOT been specified. Dump ALL queue descriptions for specified port.
+
+                # Modify URI to filter port only
+                    # Example (DPID == 1, Port == 2): http://localhost:8080/stats/queuedesc/1/2
+                rest_uri = rest_uri + '/' + str(port)   # TODO: Add try/catch in case port does not exist.
+
+                # Make call to REST API (GET)
+                r = requests.get(rest_uri)
+
+                # DEBUG MODE
+                if self.debug: self.debug_dump(rest_uri, r, "(OPENFLOW v1.4+) GET QUEUE DESCRIPTION: PORT #" + str(port) + ", NO QUEUE ID# SPECIFIED")
+
+                return r.json()
+            elif port is None:
+                # QueueID has been specified. Port# has NOT been specified. Dump matched QueueID for ALL ports.
+
+                # Modify URI to filter QueueID# only
+                    # Example (DPID == 1, QueueID == 4): http://localhost:8080/stats/queuedesc/1/ALL/4
+                rest_uri = rest_uri + '/ALL/' + str(queue)   # TODO: Add try/catch in case queue does not exist.
+
+                # Make call to REST API (GET)
+                r = requests.get(rest_uri)
+
+                # DEBUG MODE
+                if self.debug: self.debug_dump(rest_uri, r, "(OPENFLOW v1.4+) GET QUEUE DESCRIPTION: QUEUE ID #" + str(queue) + ", NO PORT# SPECIFIED")
+
+                return r.json()
+        else:
+            # Both Port# AND QueueID have been specified. Dump required data only.
+
+            # Modify URI to filter both Port# and QueueID#
+                # Example (DPID == 1, Port == 2, QueueID == 4): http://localhost:8080/stats/queuedesc/1/2/4
+            rest_uri = rest_uri + '/' + str(port) + '/' + str(queue)   # TODO: Add try/catch in case port and/or queue does not exist.
+
+            # Make call to REST API (GET)
+            r = requests.get(rest_uri)
+
+            # DEBUG MODE
+            if self.debug: self.debug_dump(rest_uri, r, "(OPENFLOW v1.4+) GET QUEUE DESCRIPTION: QUEUE ID #" + str(queue) + ", PORT #" + str(port))
+
+            return r.json()
+
+
+
+    ###### Retrieve Group Information ######
+
+    ## ##
+    def get_group_stats(self, DPID, group=None):
+
+        '''
+        Description:
+        Get groups stats of the switch which specified with Datapath ID in URI.
+
+        Link:
+        http://ryu.readthedocs.io/en/latest/app/ofctl_rest.html#get-groups-stats
+
+        Arguments:
+        DPID: Datapath ID (DPID) of the target switch.
+        group: [OPTIONAL] Specific groupID# to grab stats for. If not specfied, info for all groups are returned.
+
+        Return value:
+        JSON structure containing the group statistics. See link above for description of stats.
+
+        Usage:
+        R = ryuRest()
+        content1 = R.get_group_stats('123917682136708', 3)    # Will get stats for ONLY group #3.
+        content1 = R.get_group_stats('123917682136708')       # Will get stats for ALL groups
+        '''
+
+        # Path: /stats/port/<DPID>[/portnumber]
+        rest_uri = self.API + "/stats/group/" + DPID
+
+        if group is None:
+            # No groupID# specified. Get info for all groups.
+
+            # Make call to REST API (GET)
+            r = requests.get(rest_uri)
+
+            # DEBUG MODE
+            if self.debug: self.debug_dump(rest_uri, r, "GET GROUP STATS: NO GROUP ID# SPECIFIED")
+
+            return r.json()
+        else:
+            # GroupID# has been specified. Retrieve info for this groupID only.
+
+            # Modify URI to filter port
+            rest_uri = rest_uri + '/' + str(group)   # TODO: Add try/catch in case groupID# does not exist.
+
+            # Make call to REST API (GET)
+            r = requests.get(rest_uri)
+
+            # DEBUG MODE
+            if self.debug: self.debug_dump(rest_uri, r, "GET GROUP STATS: GROUP ID #" + str(group) + " SPECIFIED")
+
+            return r.json()
+
+
+
 
 
 
@@ -515,15 +719,21 @@ if __name__ == "__main__":
 
     R.get_flow_stats(DPID)
     R.get_table_stats(DPID)
-    R.get_table_features(DPID)
+    #R.get_table_features(DPID)
     R.get_port_stats(DPID)
-    #R.get_port_stats(DPID, 3)
-    #R.get_port_stats(DPID, 4)
-    R.get_port_description(DPID)
-    R.get_queue_stats(DPID)
-    R.get_queue_stats(DPID, port=3)
-    R.get_queue_stats(DPID, queue=1)
-    R.get_queue_stats(DPID, port=2, queue=2)
+    #R.get_port_stats(DPID, 3) # DISABLED [BUG]
+    #R.get_port_stats(DPID, 4) # DISABLED [BUG]
+    #R.get_port_description(DPID)
+    #R.get_queue_stats(DPID)
+    #R.get_queue_stats(DPID, port=3)
+    #R.get_queue_stats(DPID, queue=1)
+    #R.get_queue_stats(DPID, port=2, queue=2)
+    #R.get_queue_config(DPID)            # Restricted to OpenFlow <v1.0 - 1.3
+    #R.get_queue_config(DPID, 3)         # Restricted to OpenFlow <v1.0 - 1.3
+    #R.get_queue_description(DPID)       # Requires OpenFlow v1.4+
+    #R.get_queue_description(DPID, 3)    # Requires OpenFlow v1.4+
+    R.get_group_stats(DPID)
+    R.get_group_stats(DPID, 3)
 
 
     R.get_flows(DPID)

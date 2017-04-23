@@ -23,10 +23,10 @@ class ryuRest(object):
                 self.debug = True
 
 
-    def debug_dump(self, rest_uri, r, title=""):
-        if title:
-            print title
-        print "REST call to URI:"
+    def debug_dump(self, rest_uri, r, title=None):
+        if title is not None:
+            print "#### " + title + " ####"
+        print "REST URI:"
         print rest_uri
         print "Output:"
         print str(r.json()) + '\n'
@@ -40,7 +40,7 @@ class ryuRest(object):
 
         '''
         Description:
-        Get the list of all switches which connected to the controller.
+        Get the list of all switch DPIDs that are connected to the controller.
 
         Link:
         http://ryu.readthedocs.io/en/latest/app/ofctl_rest.html#get-all-switches
@@ -71,7 +71,7 @@ class ryuRest(object):
 
 
     ## Get hardware stats of a specified switch DPID ##
-    def get_stats_switch(self, DPID):
+    def get_switch_stats(self, DPID):
 
         '''
         Description:
@@ -88,7 +88,7 @@ class ryuRest(object):
 
         Usage:
         R = ryuRest()
-        content = R.get_stats_switch('123917682136708')
+        content = R.get_switch_stats('123917682136708')
         print content
         {
           "123917682136708": {
@@ -149,7 +149,7 @@ class ryuRest(object):
             r = requests.get(rest_uri)
 
             # DEBUG MODE
-            if self.debug: self.debug_dump(rest_uri, r)
+            if self.debug: self.debug_dump(rest_uri, r, "GET FLOWS")
 
             return r.json()
         else:
@@ -165,7 +165,7 @@ class ryuRest(object):
 
 
     ## Get the aggregated stats of the specified switch's flow table. Optionally give a filter. ##
-    def get_stats_flow(self, DPID, filters={}):
+    def get_flow_stats(self, DPID, filters={}):
 
         '''
         Description:
@@ -183,7 +183,7 @@ class ryuRest(object):
 
         Usage:
         R = ryuRest()
-        content = R.get_stats_flow('123917682136708')
+        content = R.get_flow_stats('123917682136708')
         print content      # See link for output and field descriptions
         '''
 
@@ -215,7 +215,7 @@ class ryuRest(object):
     ###### Retrieve Flow Table Information ######
 
     ## Get statistics for all flow tables for a switch DPID ##
-    def get_stats_table(self, DPID):
+    def get_table_stats(self, DPID):
 
         '''
         Description:
@@ -232,7 +232,7 @@ class ryuRest(object):
 
         Usage:
         R = ryuRest()
-        content = R.get_stats_table('123917682136708')
+        content = R.get_table_stats('123917682136708')
         print content     # See link for output and field descriptions
         '''
 
@@ -287,7 +287,7 @@ class ryuRest(object):
     ###### Retrieve Port Information ######
 
     ## ##
-    def get_stats_port(self, DPID, port=0):
+    def get_port_stats(self, DPID, port=None):
 
         '''
         Description:
@@ -305,15 +305,15 @@ class ryuRest(object):
 
         Usage:
         R = ryuRest()
-        content1 = R.get_stats_port('123917682136708', 3)    # Will get stats for ONLY Port #3.
-        content1 = R.get_stats_port('123917682136708')       # Will get stats for ALL ports
+        content1 = R.get_port_stats('123917682136708', 3)    # Will get stats for ONLY Port #3.
+        content1 = R.get_port_stats('123917682136708')       # Will get stats for ALL ports
 
         ****** KNOWN ISSUES ******
         Specifying a specific port crashes the switch - this is a FW issue. Awaiting patch.
         Workaround: Parse port info using lookup/JSON module on method return.
         '''
 
-        # Path: /stats/aggregateflow/<DPID>[/portnumber]
+        # Path: /stats/port/<DPID>[/portnumber]
         rest_uri = self.API + "/stats/port/" + DPID
 
         # Make call to REST API (GET)
@@ -324,7 +324,7 @@ class ryuRest(object):
 
         return r.json()
 
-        # if port == 0:
+        # if port is None:
         #     # No port# specified. Get info for all ports.
         #
         #     # Make call to REST API (GET)
@@ -350,6 +350,152 @@ class ryuRest(object):
 
 
 
+    ## ##
+    #TODO: Handle Openflow versions
+    def get_port_description(self, DPID, port=None):
+
+        '''
+        Description:
+        Get ports description of the switch which specified with Datapath ID in URI.
+
+        Link:
+        http://ryu.readthedocs.io/en/latest/app/ofctl_rest.html#get-ports-description
+
+        Arguments:
+        DPID: Datapath ID (DPID) of the target switch.
+        port: [OPTIONAL] Specific port# to grab description for. If not specfied, info for all ports is returned. (Restricted to OpenFlow v1.5+)
+
+        Return value:
+        JSON structure containing the port decriptions. See link above for example message body.
+
+        Usage:
+        R = ryuRest()
+        content1 = R.get_port_description('123917682136708', 3)    # Will get desc for ONLY Port #3. Switch must be OpenFlow v1.5+
+        content1 = R.get_port_description('123917682136708')       # Will get desc for ALL ports. OpenFlow v1.0+
+
+        Restrictions:
+        Specifying a specific port is limited to OpenFlow v1.5 and later.
+        '''
+
+        # Path: /stats/portdesc/<DPID>[/portnumber] (Port number usage restricted to OpenFlow v1.5+)
+        rest_uri = self.API + "/stats/portdesc/" + DPID
+
+        if port is None:
+            # No port# specified, or OpenFlow v1.0-1.4. Get info for all ports.
+
+            # Make call to REST API (GET)
+            r = requests.get(rest_uri)
+
+            # DEBUG MODE
+            if self.debug: self.debug_dump(rest_uri, r, "GET PORT DESCRIPTION: NO PORT SPECIFIED OR OPENFLOW v1.0-1.4")
+
+            return r.json()
+        else:
+            # Port# has been specified. Retrieve info for this port only.
+
+            # Modify URI to filter port
+            rest_uri = rest_uri + '/' + str(port)   # TODO: Add try/catch in case port does not exist.
+
+            # Make call to REST API (GET)
+            r = requests.get(rest_uri)
+
+            # DEBUG MODE
+            if self.debug: self.debug_dump(rest_uri, r, "GET PORT DESCRIPTION: PORT #" + str(port) + " SPECIFIED")
+
+            return r.json()
+
+
+
+    ###### Retrieve Queue Information ######
+
+    ## ##
+    def get_queue_stats(self, DPID, port=None, queue=None):
+
+        '''
+        Description:
+        Get queues stats of the switch which specified with Datapath ID in URI.
+
+        Link:
+        http://ryu.readthedocs.io/en/latest/app/ofctl_rest.html#get-queues-stats
+
+        Arguments:
+        DPID: Datapath ID (DPID) of the target switch.
+        port: [OPTIONAL] Specific port# to grab queue stats for.
+        queue: [OPTIONAL] Specific Queue ID# to grab stats for. If not specified, get all Queue IDs. If no port specified, will return stats for Queue ID matched on ALL ports.
+
+        Return value:
+        JSON structure containing the queue stats of specified ports. See link above for example message body.
+
+        Usage:
+        R = ryuRest()
+        content = R.get_queue_stats('123917682136708', port=3, queue=1)    # Will get stats for Queue ID == '1' on Port #3 only.
+        content = R.get_queue_stats('123917682136708', port=3)        # Will get stats for ALL Queue IDs on Port #3 only.
+        content = R.get_queue_stats('123917682136708', queue=1)       # Will get stats for Queue ID == '1' on ALL ports.
+        content = R.get_queue_stats('123917682136708')                # Will get stats for ALL Queue IDs on ALL ports.
+        '''
+
+        # Path: /stats/queue/<DPID>[/portnumber[/<queue_id>]]
+        rest_uri = self.API + "/stats/queue/" + DPID
+
+        if all(arg is None for arg in [port, queue]):
+            # No port# or queueID# specified. Dump ALL.
+
+            # Make call to REST API (GET)
+            r = requests.get(rest_uri)
+
+            # DEBUG MODE
+            if self.debug: self.debug_dump(rest_uri, r, "GET QUEUE STATS: NO PORT# OR QUEUE ID# SPECIFIED")
+
+            return r.json()
+
+        elif any(arg is None for arg in [port, queue]):
+            # Only one of either queueID# or port# has been specified...
+
+            if queue is None:
+                # Port# has been specified. QueueID# has NOT been specified. Dump ALL queue stats for specified port.
+
+                # Modify URI to filter port only
+                    # Example (DPID == 1, Port == 2): http://localhost:8080/stats/queue/1/2
+                rest_uri = rest_uri + '/' + str(port)   # TODO: Add try/catch in case port does not exist.
+
+                # Make call to REST API (GET)
+                r = requests.get(rest_uri)
+
+                # DEBUG MODE
+                if self.debug: self.debug_dump(rest_uri, r, "GET QUEUE STATS: PORT #" + str(port) + ", NO QUEUE ID# SPECIFIED")
+
+                return r.json()
+            elif port is None:
+                # QueueID has been specified. Port# has NOT been specified. Dump matched QueueID for ALL ports.
+
+                # Modify URI to filter QueueID# only
+                    # Example (DPID == 1, QueueID == 4): http://localhost:8080/stats/queue/1/ALL/4
+                rest_uri = rest_uri + '/ALL/' + str(queue)   # TODO: Add try/catch in case queue does not exist.
+
+                # Make call to REST API (GET)
+                r = requests.get(rest_uri)
+
+                # DEBUG MODE
+                if self.debug: self.debug_dump(rest_uri, r, "GET QUEUE STATS: QUEUE ID #" + str(queue) + ", NO PORT# SPECIFIED")
+
+                return r.json()
+        else:
+            # Both Port# AND QueueID have been specified. Dump required data only.
+
+            # Modify URI to filter both Port# and QueueID#
+                # Example (DPID == 1, Port == 2, QueueID == 4): http://localhost:8080/stats/queue/1/2/4
+            rest_uri = rest_uri + '/' + str(port) + '/' + str(queue)   # TODO: Add try/catch in case port and/or queue does not exist.
+
+            # Make call to REST API (GET)
+            r = requests.get(rest_uri)
+
+            # DEBUG MODE
+            if self.debug: self.debug_dump(rest_uri, r, "GET QUEUE STATS: QUEUE ID #" + str(queue) + ", PORT #" + str(port))
+
+            return r.json()
+
+
+
 
 
 
@@ -363,13 +509,21 @@ if __name__ == "__main__":
     content = R.get_switches()
     print str(content[0]) + '\n'
 
-    R.get_stats_switch(DPID)
+    R.get_switch_stats(DPID)
 
     R.get_flows(DPID)
 
-    R.get_stats_flow(DPID)
-    R.get_stats_table(DPID)
+    R.get_flow_stats(DPID)
+    R.get_table_stats(DPID)
     R.get_table_features(DPID)
-    R.get_stats_port(DPID)
-    #R.get_stats_port(DPID, 3)
-    #R.get_stats_port(DPID, 4)
+    R.get_port_stats(DPID)
+    #R.get_port_stats(DPID, 3)
+    #R.get_port_stats(DPID, 4)
+    R.get_port_description(DPID)
+    R.get_queue_stats(DPID)
+    R.get_queue_stats(DPID, port=3)
+    R.get_queue_stats(DPID, queue=1)
+    R.get_queue_stats(DPID, port=2, queue=2)
+
+
+    R.get_flows(DPID)

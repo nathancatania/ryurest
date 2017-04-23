@@ -671,7 +671,7 @@ class ryuRest(object):
         content1 = R.get_group_stats('123917682136708')       # Will get stats for ALL groups
         '''
 
-        # Path: /stats/port/<DPID>[/portnumber]
+        # Path: /stats/group/<DPID>[/portnumber]
         rest_uri = self.API + "/stats/group/" + DPID
 
         if group is None:
@@ -700,6 +700,96 @@ class ryuRest(object):
 
 
 
+    ## ##
+    #TODO: Handle Openflow versions
+    def get_group_description(self, DPID, port=None):
+
+        '''
+        Description:
+        Get group description stats of the switch which specified with Datapath ID in URI.
+
+        Link:
+        http://ryu.readthedocs.io/en/latest/app/ofctl_rest.html#get-group-description-stats
+
+        Arguments:
+        DPID: Datapath ID (DPID) of the target switch.
+        port: [OPTIONAL] Specific group# to grab description for. If not specfied, info for all groups is returned. (Restricted to OpenFlow v1.5+)
+
+        Return value:
+        JSON structure containing the group decription. See link above for example message body.
+
+        Usage:
+        R = ryuRest()
+        content1 = R.get_group_description('123917682136708', 3)    # Will get desc for ONLY Group ID #3. Switch must be OpenFlow v1.5+
+        content1 = R.get_group_description('123917682136708')       # Will get desc for ALL groups. OpenFlow v1.0 - v1.4
+
+        Restrictions:
+        Specifying a specific groupID is limited to OpenFlow v1.5 and later.
+        '''
+
+        # Path: /stats/groupdesc/<DPID>[/portnumber] (Port number usage restricted to OpenFlow v1.5+)
+        rest_uri = self.API + "/stats/groupdesc/" + DPID
+
+        if port is None:
+            # No group ID# specified, or OpenFlow v1.0-1.4. Get info for all groups.
+
+            # Make call to REST API (GET)
+            r = requests.get(rest_uri)
+
+            # DEBUG MODE
+            if self.debug: self.debug_dump(rest_uri, r, "GET GROUP DESCRIPTION: NO GROUP SPECIFIED OR OPENFLOW v1.0-1.4")
+
+            return r.json()
+        else:
+            # Group ID# has been specified. Retrieve info for this group only. (RESTRICTED TO OPENFLOW v1.5+)
+
+            # Modify URI to filter port
+            rest_uri = rest_uri + '/' + str(port)   # TODO: Add try/catch in case port does not exist.
+
+            # Make call to REST API (GET)
+            r = requests.get(rest_uri)
+
+            # DEBUG MODE
+            if self.debug: self.debug_dump(rest_uri, r, "GET GROUP DESCRIPTION: GROUP ID #" + str(port) + " SPECIFIED")
+
+            return r.json()
+
+
+
+    ## ##
+    def get_group_features(self, DPID):
+
+        '''
+        Description:
+        Get group features stats of the switch which specified with Datapath ID in URI.
+
+        Link:
+        http://ryu.readthedocs.io/en/latest/app/ofctl_rest.html#get-group-features-stats
+
+        Arguments:
+        Datapath ID (DPID) of the target switch.
+
+        Return value:
+        JSON structure containing aggregated feature information for all groups on the specified switch.
+
+        Usage:
+        R = ryuRest()
+        content = R.get_group_features('123917682136708')
+        '''
+
+        # Path: /stats/groupfeatures/<DPID>
+        rest_uri = self.API + "/stats/groupfeatures/" + DPID
+
+        # Make call to REST API (GET)
+        r = requests.get(rest_uri)
+
+        # DEBUG MODE
+        if self.debug: self.debug_dump(rest_uri, r, "GET GROUP FEATURES")
+
+        return r.json()
+
+
+
 
 
 
@@ -715,12 +805,12 @@ if __name__ == "__main__":
 
     R.get_switch_stats(DPID)
 
-    R.get_flows(DPID)
+    #R.get_flows(DPID)
 
-    R.get_flow_stats(DPID)
-    R.get_table_stats(DPID)
+    #R.get_flow_stats(DPID)
+    #R.get_table_stats(DPID)
     #R.get_table_features(DPID)
-    R.get_port_stats(DPID)
+    #R.get_port_stats(DPID)
     #R.get_port_stats(DPID, 3) # DISABLED [BUG]
     #R.get_port_stats(DPID, 4) # DISABLED [BUG]
     #R.get_port_description(DPID)
@@ -734,6 +824,8 @@ if __name__ == "__main__":
     #R.get_queue_description(DPID, 3)    # Requires OpenFlow v1.4+
     R.get_group_stats(DPID)
     R.get_group_stats(DPID, 3)
+    R.get_group_description(DPID)
+    R.get_group_features(DPID)
 
 
     R.get_flows(DPID)

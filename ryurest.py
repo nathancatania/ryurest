@@ -1,41 +1,73 @@
-import requests
+#####################################################
+##               RYU SDN CONTROLLER                ##
+##      PYTHON LIBRARY FOR NORTHBOUND REST API     ##
+##               FUNCTIONAL MODULE                 ##
+##                     v1.0.0                      ##
+#####################################################
 
-# REST API Documentation: http://ryu.readthedocs.io/en/latest/app/ofctl_rest.html
+# Copyright 2017 Nathan Catania
+#
+#    Licensed under the Apache License, Version 2.0 (the "License");
+#    you may not use this file except in compliance with the License.
+#    You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS,
+#    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#    See the License for the specific language governing permissions and
+#    limitations under the License.
+
+
+### RYU REST API DOCUMENTATION ###
+#   http://ryu.readthedocs.io/en/latest/app/ofctl_rest.html
+
+### ABOUT ###
+#   This a Python module that provides easy functional access to the Ryu REST API.
+#   The module uses the Requests framework to interact with the RYU REST API.
+#   For an Object-Orientated approach, use the ryu_switch.py module which will instantiate switches as objects.
 
 ### REQUIREMENTS ###
-# "Requests" library: http://docs.python-requests.org/en/master/
-# Install using: pip install requests
+#   "Requests" library: http://docs.python-requests.org/en/master/
+#   Install using: pip install requests
 
+### INSTALLATION ###
+#   Place this file at the root of your project. PIP support is WIP.
 
 ### USAGE INSTRUCTIONS ###
+#   1. Import this module into your script, for example:
+#      >> import ryu_rest
 #
-# 1. Import this module into your script, for example:
-#    >> import ryu_rest
+#   2. The default location for the Ryu REST API is: http://localhost:8080
+#      * If the Ryu controller is running on a different machine and/or port, you MUST set the API path in your own script file. For example:
+#           >> ryu_rest.API = "http://192.168.1.30:8080"
+#           (WARNING: If altering the API path, DO NOT add a trailing '/' at the end or the API call will fail!)
+#      * If Ryu is running on this PC (localhost), then there is no need to change anything.
 #
-# 2. The default location for the Ryu REST API is: http://localhost:8080
-#    * If the Ryu controller is running on a different machine and/or port, you MUST set the API path in your own script file. For example:
-#        >> ryu_rest.API = "http://192.168.1.30:8080"
-#        (WARNING: If altering the API path, DO NOT add a trailing '/' at the end or the API call will fail!)
-#    * If Ryu is running on this PC (localhost), then there is no need to change anything.
+#   3. Execute the functions as required. Example:
+#       >> DPID = "1234567890"
+#       >> data = ryurest.get_flows(DPID)
+#      * Most of the functions take the switch DPID as a mandatory argument. Some have optional filters as well.
+#      * The DPID can be obtained by calling the get_switches() function and parsing the output (array of connected DPIDs)
 #
-# 3. Execute the functions as required. Example:
-#    >> DPID = "1234567890"
-#    >> data = ryurest.get_flows(DPID)
-#
-# 4. Return Formats
-#    * If successful...
-#       * All the get_x() functions will return JSON formatted data; EXCEPT get_switches() which will return an array of DPIDs.
-#       * All the set_x(), delete_x(), modify_X() functions will return boolean True.
-#    * If unsuccessful...
-#       * ALL functions will return boolean False.
+#   4. Return Formats
+#       * If successful...
+#           * All the get_x() functions will return JSON formatted data; EXCEPT get_switches() which will return an array of DPIDs.
+#           * All the set_x(), delete_x(), modify_X() functions will return boolean True.
+#       * If unsuccessful...
+#           * ALL functions will return boolean False.
 
 
 ### API PATH ###
-# Do not alter here unless you know what you are doing.
-# To alter, once this module has been imported use in your script, override this by setting:
-#     >> ryu_rest.API = "http://<hostname_or_ip>:<port>"
-# Warning: DO NOT add a trailing '/' at the end or API will fail.
+#   Do not alter here unless you know what you are doing.
+#   To alter, once this module has been imported use in your script, override this by setting:
+#       >> ryu_rest.API = "http://<hostname_or_ip>:<port>"
+#   Warning: DO NOT add a trailing '/' at the end or API will fail.
 API = "http://localhost:8080"
+
+# Use Requests library (required)
+import requests
 
 
 
@@ -62,8 +94,7 @@ def get_switches():
     Returns an ARRAY of Datapath IDs (DPID) - one for each connected switch.
 
     Usage:
-    R = ryuRest()
-    content = R.list_switches()
+    content = ryurest.list_switches()
     print content[0]
     '''
 
@@ -100,7 +131,7 @@ def get_switch_stats(DPID):
 
     Usage:
     R = ryuRest()
-    content = R.get_switch_stats('123917682136708')
+    content = ryurest.get_switch_stats('123917682136708')
     print content
     {
       "123917682136708": {
@@ -149,7 +180,7 @@ def get_flows(DPID, filters={}):
 
     Usage:
     R = ryuRest()
-    content = R.get_flows('123917682136708')
+    content = ryurest.get_flows('123917682136708')
     '''
 
     # Path: /stats/flow/<DPID>
@@ -193,7 +224,7 @@ def get_flow_stats(DPID, filters={}):
 
     Usage:
     R = ryuRest()
-    content = R.get_flow_stats('123917682136708')
+    content = ryurest.get_flow_stats('123917682136708')
     '''
 
     # Path: /stats/aggregateflow/<DPID>
@@ -238,7 +269,7 @@ def get_table_stats(DPID):
 
     Usage:
     R = ryuRest()
-    content = R.get_table_stats('123917682136708')
+    content = ryurest.get_table_stats('123917682136708')
     print content     # See link for output and field descriptions
     '''
 
@@ -275,7 +306,7 @@ def get_table_features(DPID):
 
     Usage:
     R = ryuRest()
-    content = R.get_table_features('123917682136708')
+    content = ryurest.get_table_features('123917682136708')
     print content     # See link for output and field descriptions
     '''
 
@@ -315,8 +346,8 @@ def get_port_stats(DPID, port=None):
 
     Usage:
     R = ryuRest()
-    content = R.get_port_stats('123917682136708', 3)    # Will get stats for ONLY Port #3.
-    content = R.get_port_stats('123917682136708')       # Will get stats for ALL ports
+    content = ryurest.get_port_stats('123917682136708', 3)    # Will get stats for ONLY Port #3.
+    content = ryurest.get_port_stats('123917682136708')       # Will get stats for ALL ports
 
     ****** KNOWN ISSUES ******
     Specifying a specific port crashes the switch - this is a FW issue. Awaiting patch.
@@ -364,8 +395,8 @@ def get_port_description(DPID, port=None, openflow=None):
 
     Usage:
     R = ryuRest()
-    content = R.get_port_description('123917682136708', 3)    # Will get desc for ONLY Port #3. Switch must be OpenFlow v1.5+
-    content = R.get_port_description('123917682136708')       # Will get desc for ALL ports. OpenFlow v1.0+
+    content = ryurest.get_port_description('123917682136708', 3)    # Will get desc for ONLY Port #3. Switch must be OpenFlow v1.5+
+    content = ryurest.get_port_description('123917682136708')       # Will get desc for ALL ports. OpenFlow v1.0+
 
     Restrictions:
     Specifying a specific port is limited to OpenFlow v1.5 and later.
@@ -418,10 +449,10 @@ def get_queue_stats(DPID, port=None, queue=None):
 
     Usage:
     R = ryuRest()
-    content = R.get_queue_stats('123917682136708', port=3, queue=1)    # Will get stats for Queue ID == '1' on Port #3 only.
-    content = R.get_queue_stats('123917682136708', port=3)        # Will get stats for ALL Queue IDs on Port #3 only.
-    content = R.get_queue_stats('123917682136708', queue=1)       # Will get stats for Queue ID == '1' on ALL ports.
-    content = R.get_queue_stats('123917682136708')                # Will get stats for ALL Queue IDs on ALL ports.
+    content = ryurest.get_queue_stats('123917682136708', port=3, queue=1)    # Will get stats for Queue ID == '1' on Port #3 only.
+    content = ryurest.get_queue_stats('123917682136708', port=3)        # Will get stats for ALL Queue IDs on Port #3 only.
+    content = ryurest.get_queue_stats('123917682136708', queue=1)       # Will get stats for Queue ID == '1' on ALL ports.
+    content = ryurest.get_queue_stats('123917682136708')                # Will get stats for ALL Queue IDs on ALL ports.
     '''
 
     # Path: /stats/queue/<DPID>[/portnumber[/<queue_id>]]
@@ -485,8 +516,8 @@ def get_queue_config(DPID, port=None):
 
     Usage:
     R = ryuRest()
-    content1 = R.get_queue_config('123917682136708', 3)    # Will get queue config for ONLY Port #3.
-    content1 = R.get_queue_config('123917682136708')       # Will get queue config for ALL ports.
+    content1 = ryurest.get_queue_config('123917682136708', 3)    # Will get queue config for ONLY Port #3.
+    content1 = ryurest.get_queue_config('123917682136708')       # Will get queue config for ALL ports.
 
     Restrictions:
     This API is depreciated in OpenFlow v1.4+. For v1.4+, use: get_queue_description()
@@ -534,10 +565,10 @@ def get_queue_description(DPID, port=None, queue=None):
 
     Usage:
     R = ryuRest()
-    content = R.get_queue_description('123917682136708', port=3, queue=1)    # Will get desc for Queue ID == '1' on Port #3 only.
-    content = R.get_queue_description('123917682136708', port=3)        # Will get desc for ALL Queue IDs on Port #3 only.
-    content = R.get_queue_description('123917682136708', queue=1)       # Will get desc for Queue ID == '1' on ALL ports.
-    content = R.get_queue_description('123917682136708')                # Will get desc for ALL Queue IDs on ALL ports.
+    content = ryurest.get_queue_description('123917682136708', port=3, queue=1)    # Will get desc for Queue ID == '1' on Port #3 only.
+    content = ryurest.get_queue_description('123917682136708', port=3)        # Will get desc for ALL Queue IDs on Port #3 only.
+    content = ryurest.get_queue_description('123917682136708', queue=1)       # Will get desc for Queue ID == '1' on ALL ports.
+    content = ryurest.get_queue_description('123917682136708')                # Will get desc for ALL Queue IDs on ALL ports.
 
     Restrictions:
     This API is only compatible with OpenFlow v1.4+. For v1.0 - v1.3, use: get_queue_config()
@@ -605,8 +636,8 @@ def get_group_stats(DPID, group=None):
 
     Usage:
     R = ryuRest()
-    content = R.get_group_stats('123917682136708', 3)    # Will get stats for ONLY group #3.
-    content = R.get_group_stats('123917682136708')       # Will get stats for ALL groups
+    content = ryurest.get_group_stats('123917682136708', 3)    # Will get stats for ONLY group #3.
+    content = ryurest.get_group_stats('123917682136708')       # Will get stats for ALL groups
     '''
 
     # Path: /stats/group/<DPID>[/portnumber]
@@ -649,8 +680,8 @@ def get_group_description(DPID, port=None, openflow=None):
 
     Usage:
     R = ryuRest()
-    content = R.get_group_description('123917682136708', 3)    # Will get desc for ONLY Group ID #3. Switch must be OpenFlow v1.5+
-    content = R.get_group_description('123917682136708')       # Will get desc for ALL groups. OpenFlow v1.0 - v1.4
+    content = ryurest.get_group_description('123917682136708', 3)    # Will get desc for ONLY Group ID #3. Switch must be OpenFlow v1.5+
+    content = ryurest.get_group_description('123917682136708')       # Will get desc for ALL groups. OpenFlow v1.0 - v1.4
 
     Restrictions:
     Specifying a specific groupID is limited to OpenFlow v1.5 and later.
@@ -699,7 +730,7 @@ def get_group_features(DPID):
 
     Usage:
     R = ryuRest()
-    content = R.get_group_features('123917682136708')
+    content = ryurest.get_group_features('123917682136708')
     '''
 
     # Path: /stats/groupfeatures/<DPID>
@@ -739,8 +770,8 @@ def get_meter_stats(DPID, meter=None):
 
     Usage:
     R = ryuRest()
-    content1 = R.get_meter_stats('123917682136708', 3)    # Will get stats for ONLY meter ID #3.
-    content1 = R.get_meter_stats('123917682136708')       # Will get stats for ALL meters
+    content1 = ryurest.get_meter_stats('123917682136708', 3)    # Will get stats for ONLY meter ID #3.
+    content1 = ryurest.get_meter_stats('123917682136708')       # Will get stats for ALL meters
     '''
 
     # Path: /stats/group/<DPID>[/portnumber]
@@ -785,9 +816,9 @@ def get_meter_description(DPID, meter=None, openflow=1.0):
     Usage:
     R = ryuRest()
     DPID = "123917682136708"
-    content = R.get_meter_description(DPID, 3)    # Will get desc for Meter ID #3 ONLY. Assumes OpenFlow v1.0-1.4 for calling API.
-    content = R.get_meter_description(DPID)       # Will get desc for ALL meters. Assumes OpenFlow v1.0-1.4 for calling API.
-    content = R.get_meter_description(DPID, meter=3, openflow=1.5)   # Will get desc for Meter ID #3. Runs API call for Openflow 1.5+.
+    content = ryurest.get_meter_description(DPID, 3)    # Will get desc for Meter ID #3 ONLY. Assumes OpenFlow v1.0-1.4 for calling API.
+    content = ryurest.get_meter_description(DPID)       # Will get desc for ALL meters. Assumes OpenFlow v1.0-1.4 for calling API.
+    content = ryurest.get_meter_description(DPID, meter=3, openflow=1.5)   # Will get desc for Meter ID #3. Runs API call for Openflow 1.5+.
 
     Restrictions:
     API URI was renamed for OpenFlow v1.5+ :
@@ -842,7 +873,7 @@ def get_meter_features(DPID):
 
     Usage:
     R = ryuRest()
-    content = R.get_meter_features('123917682136708')
+    content = ryurest.get_meter_features('123917682136708')
     '''
 
     # Path: /stats/meterfeatures/<DPID>
@@ -881,7 +912,7 @@ def get_role(DPID):
 
     Usage:
     R = ryuRest()
-    content = R.get_role('123917682136708')
+    content = ryurest.get_role('123917682136708')
 
     ****** KNOWN ISSUES ******
     Calling this REST API returns a 404 error which indicates the API does not exist in RYU.

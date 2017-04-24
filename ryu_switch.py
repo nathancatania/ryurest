@@ -1,18 +1,93 @@
+#####################################################
+##               RYU SDN CONTROLLER                ##
+##      PYTHON LIBRARY FOR NORTHBOUND REST API     ##
+##            OBJECT-ORIENTATED MODULE             ##
+##                     v1.0.0                      ##
+#####################################################
+
+# Copyright 2017 Nathan Catania
+#
+#    Licensed under the Apache License, Version 2.0 (the "License");
+#    you may not use this file except in compliance with the License.
+#    You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS,
+#    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#    See the License for the specific language governing permissions and
+#    limitations under the License.
+
+
+### RYU REST API DOCUMENTATION ###
+#   http://ryu.readthedocs.io/en/latest/app/ofctl_rest.html
+
+### ABOUT ###
+#   This a Python module that provides easy, Object-Orientated access to the Ryu REST API.
+#   The module uses the Requests framework to interact with the RYU REST API.
+#   For a functional approach, use the ryurest.py module which allows you to call the methods directly.
+
+### REQUIREMENTS ###
+#   "Requests" library: http://docs.python-requests.org/en/master/
+#   Install using: pip install requests
+
+### INSTALLATION ###
+#   Place this file at the root of your project. PIP support is WIP.
+
+### USAGE INSTRUCTIONS ###
+#   1. Import this module and the RyuSwitch class into your script. For example:
+#      >> from ryu_switch import RyuSwitch
+#
+#   2. Create one or more RyuSwitch objects. See demos/OO_demo.py for more info.
+#        >> switch1 = RyuSwitch( DPID )
+#
+#        * If you do not know any of the DPIDs of the connected switches, you can initialize with no arguments:
+#            >> switch0 = RyuSwitch()
+#        * Call the .get_switches() method to return a list of DPIDs:
+#            >> DPID_list = switch0.get_switches()
+#        * Be sure to assign any object created in this way a DPID manually:
+#            >> switch0.DPID = DPID_list[0]
+#
+#   3. [OPTIONAL] The default location for the Ryu REST API is: http://localhost:8080
+#      * If Ryu is running on this PC (localhost), then there is no need to change anything.
+#      * If the Ryu controller is running on a different machine and/or port, you MUST set the API path within each RyuSwitch object created.
+#      * For example:
+#           >> switch1 = RyuSwitch( DPID )
+#           >> switch1.API = "http://192.168.1.30:8080"
+#           >> switch2 = RyuSwitch( DPID )
+#           >> switch2.API = "http://192.168.1.30:8080"
+#           (WARNING: If altering the API path, DO NOT add a trailing '/' at the end or the API call will fail!)
+#
+#   4. Execute the class methods as required. Example:
+#           >> flows = switch1.get_flows()
+#      * Some methods have optional filters as well. Consult the ryu_switch.py module or the Ryu REST API documentation for more info.
+#
+#   5. Return Formats
+#       * If successful...
+#           * All the .get_x() methods will return JSON formatted data; EXCEPT .get_switches() which will return an array of DPIDs.
+#           * All the .set_x(), .delete_x(), .modify_X() methods will return boolean True.
+#       * If unsuccessful...
+#           * ALL methods will return boolean False.
+
+
+
+
+# Use Requests library (required)
 import requests
-
-# REST API Documentation: http://ryu.readthedocs.io/en/latest/app/ofctl_rest.html
-
-
 
 class RyuSwitch(object):
 
-    def __init__(self, DPID):
+    def __init__(self, DPID=None):
         # Set switch DPID
         self.DPID = DPID
 
-        # Base REST API URI
+        ### Base REST API URI ###
+        # DO NOT alter this path in this file unless you know what you are doing!
+        # Warning: DO NOT add a trailing '/' at the end or API will fail.
         self.API = "http://localhost:8080"
-        
+
+
 
     #########################################
     ###     GET DATA FROM THE SWITCH      ###
@@ -37,7 +112,7 @@ class RyuSwitch(object):
         Returns an ARRAY of Datapath IDs (DPID) - one for each connected switch.
 
         Usage:
-        R = ryuRest()
+        R = RyuSwitch()
         content = R.list_switches()
         print content[0]
         '''
@@ -75,7 +150,7 @@ class RyuSwitch(object):
         JSON structure containing information about the switch hardware.
 
         Usage:
-        R = ryuRest()
+        R = RyuSwitch()
         content = R.get_switch_stats('123917682136708')
         print content
         {
@@ -125,7 +200,7 @@ class RyuSwitch(object):
         JSON structure containing the flows in the flow table.
 
         Usage:
-        R = ryuRest()
+        R = RyuSwitch()
         content = R.get_flows('123917682136708')
         print content      # See link for output and field descriptions
         '''
@@ -179,7 +254,7 @@ class RyuSwitch(object):
         JSON structure containing the aggregated flow stats.
 
         Usage:
-        R = ryuRest()
+        R = RyuSwitch()
         content = R.get_flow_stats('123917682136708')
         print content      # See link for output and field descriptions
         '''
@@ -222,7 +297,7 @@ class RyuSwitch(object):
         JSON structure containing information and stats for EVERY flow table on the specified switch.
 
         Usage:
-        R = ryuRest()
+        R = RyuSwitch()
         content = R.get_table_stats('123917682136708')
         print content     # See link for output and field descriptions
         '''
@@ -233,7 +308,13 @@ class RyuSwitch(object):
         # Make call to REST API (GET)
         r = requests.get(rest_uri)
 
-        return r.json()
+        # Ryu returns HTTP 200 status if successful
+        if r.status_code == 200:
+            return r.json()
+        else:
+            return False
+            # If submission fails, Ryu returns HTTP 400 status.
+            # Catch all for HTTP errors.
 
 
 
@@ -254,7 +335,7 @@ class RyuSwitch(object):
         JSON structure containing feature information for EVERY flow table on the specified switch.
 
         Usage:
-        R = ryuRest()
+        R = RyuSwitch()
         content = R.get_table_features('123917682136708')
         print content     # See link for output and field descriptions
         '''
@@ -265,7 +346,13 @@ class RyuSwitch(object):
         # Make call to REST API (GET)
         r = requests.get(rest_uri)
 
-        return r.json()
+        # Ryu returns HTTP 200 status if successful
+        if r.status_code == 200:
+            return r.json()
+        else:
+            return False
+            # If submission fails, Ryu returns HTTP 400 status.
+            # Catch all for HTTP errors.
 
 
 
@@ -289,7 +376,7 @@ class RyuSwitch(object):
         JSON structure containing the port statistics. See link above for description of stats.
 
         Usage:
-        R = ryuRest()
+        R = RyuSwitch()
         content = R.get_port_stats('123917682136708', 3)    # Will get stats for ONLY Port #3.
         content = R.get_port_stats('123917682136708')       # Will get stats for ALL ports
 
@@ -338,7 +425,7 @@ class RyuSwitch(object):
         JSON structure containing the port decriptions. See link above for example message body.
 
         Usage:
-        R = ryuRest()
+        R = RyuSwitch()
         content = R.get_port_description('123917682136708', 3)    # Will get desc for ONLY Port #3. Switch must be OpenFlow v1.5+
         content = R.get_port_description('123917682136708')       # Will get desc for ALL ports. OpenFlow v1.0+
 
@@ -392,7 +479,7 @@ class RyuSwitch(object):
         JSON structure containing the queue stats of specified ports. See link above for example message body.
 
         Usage:
-        R = ryuRest()
+        R = RyuSwitch()
         content = R.get_queue_stats('123917682136708', port=3, queue=1)    # Will get stats for Queue ID == '1' on Port #3 only.
         content = R.get_queue_stats('123917682136708', port=3)        # Will get stats for ALL Queue IDs on Port #3 only.
         content = R.get_queue_stats('123917682136708', queue=1)       # Will get stats for Queue ID == '1' on ALL ports.
@@ -459,7 +546,7 @@ class RyuSwitch(object):
         JSON structure containing the queue config. See link above for example message body.
 
         Usage:
-        R = ryuRest()
+        R = RyuSwitch()
         content1 = R.get_queue_config('123917682136708', 3)    # Will get queue config for ONLY Port #3.
         content1 = R.get_queue_config('123917682136708')       # Will get queue config for ALL ports.
 
@@ -508,7 +595,7 @@ class RyuSwitch(object):
         JSON structure containing queue descriptions on specified ports. See link above for example message body.
 
         Usage:
-        R = ryuRest()
+        R = RyuSwitch()
         content = R.get_queue_description('123917682136708', port=3, queue=1)    # Will get desc for Queue ID == '1' on Port #3 only.
         content = R.get_queue_description('123917682136708', port=3)        # Will get desc for ALL Queue IDs on Port #3 only.
         content = R.get_queue_description('123917682136708', queue=1)       # Will get desc for Queue ID == '1' on ALL ports.
@@ -579,7 +666,7 @@ class RyuSwitch(object):
         JSON structure containing the group statistics. See link above for description of stats.
 
         Usage:
-        R = ryuRest()
+        R = RyuSwitch()
         content = R.get_group_stats('123917682136708', 3)    # Will get stats for ONLY group #3.
         content = R.get_group_stats('123917682136708')       # Will get stats for ALL groups
         '''
@@ -623,7 +710,7 @@ class RyuSwitch(object):
         JSON structure containing the group decription. See link above for example message body.
 
         Usage:
-        R = ryuRest()
+        R = RyuSwitch()
         content = R.get_group_description('123917682136708', 3)    # Will get desc for ONLY Group ID #3. Switch must be OpenFlow v1.5+
         content = R.get_group_description('123917682136708')       # Will get desc for ALL groups. OpenFlow v1.0 - v1.4
 
@@ -647,6 +734,7 @@ class RyuSwitch(object):
         r = requests.get(rest_uri)
 
         # Ryu returns HTTP 200 status if successful
+        if r.status_code == 200:
             return r.json()
         else:
             return False
@@ -672,7 +760,7 @@ class RyuSwitch(object):
         JSON structure containing aggregated feature information for all groups on the specified switch.
 
         Usage:
-        R = ryuRest()
+        R = RyuSwitch()
         content = R.get_group_features('123917682136708')
         '''
 
@@ -712,7 +800,7 @@ class RyuSwitch(object):
         JSON structure containing the meter statistics. See link above for description of stats.
 
         Usage:
-        R = ryuRest()
+        R = RyuSwitch()
         content1 = R.get_meter_stats('123917682136708', 3)    # Will get stats for ONLY meter ID #3.
         content1 = R.get_meter_stats('123917682136708')       # Will get stats for ALL meters
         '''
@@ -759,7 +847,7 @@ class RyuSwitch(object):
         JSON structure containing the meter decriptions. See link above for example message body.
 
         Usage:
-        R = ryuRest()
+        R = RyuSwitch()
         DPID = "123917682136708"
         content = R.get_meter_description(DPID, 3)    # Will get desc for Meter ID #3 ONLY. Assumes OpenFlow v1.0-1.4 for calling API.
         content = R.get_meter_description(DPID)       # Will get desc for ALL meters. Assumes OpenFlow v1.0-1.4 for calling API.
@@ -817,7 +905,7 @@ class RyuSwitch(object):
         JSON structure containing aggregated feature information for all meters on the specified switch.
 
         Usage:
-        R = ryuRest()
+        R = RyuSwitch()
         content = R.get_meter_features('123917682136708')
         '''
 
@@ -856,7 +944,7 @@ class RyuSwitch(object):
         JSON structure containing the role information of the controller in respect to the switch.
 
         Usage:
-        R = ryuRest()
+        R = RyuSwitch()
         content = R.get_role('123917682136708')
 
         ****** KNOWN ISSUES ******
@@ -914,7 +1002,7 @@ class RyuSwitch(object):
         Boolean. True if successful, False if error.
 
         Usage:
-        R = ryuRest()
+        R = RyuSwitch()
         R.add_flow(payload)   # Use if statement to check if successful.
         '''
 
@@ -961,7 +1049,7 @@ class RyuSwitch(object):
         Boolean. True if successful, False if error.
 
         Usage:
-        R = ryuRest()
+        R = RyuSwitch()
         R.modify_flow(payload)   # Use if statement to check if successful.
         '''
 
@@ -1008,7 +1096,7 @@ class RyuSwitch(object):
         Boolean. True if successful, False if error.
 
         Usage:
-        R = ryuRest()
+        R = RyuSwitch()
         R.modify_flow_strict(payload)   # Use if statement to check if successful.
         '''
 
@@ -1055,7 +1143,7 @@ class RyuSwitch(object):
         Boolean. True if successful, False if error.
 
         Usage:
-        R = ryuRest()
+        R = RyuSwitch()
         R.delete_flow(payload)   # Use if statement to check if successful.
         '''
 
@@ -1102,7 +1190,7 @@ class RyuSwitch(object):
         Boolean. True if successful, False if error.
 
         Usage:
-        R = ryuRest()
+        R = RyuSwitch()
         R.delete_flow_strict(payload)   # Use if statement to check if successful.
         '''
 
@@ -1139,7 +1227,7 @@ class RyuSwitch(object):
         Boolean. True if successful, False if error.
 
         Usage:
-        R = ryuRest()
+        R = RyuSwitch()
         R.delete_flow_all(DPID)   # Use if statement to check if successful.
         '''
 
@@ -1190,7 +1278,7 @@ class RyuSwitch(object):
         Boolean. True if successful, False if error.
 
         Usage:
-        R = ryuRest()
+        R = RyuSwitch()
         R.add_group(payload)   # Use if statement to check if successful.
         '''
 
@@ -1239,7 +1327,7 @@ class RyuSwitch(object):
         Boolean. True if successful, False if error.
 
         Usage:
-        R = ryuRest()
+        R = RyuSwitch()
         R.modify_group(payload)   # Use if statement to check if successful.
         '''
 
@@ -1282,7 +1370,7 @@ class RyuSwitch(object):
         Boolean. True if successful, False if error.
 
         Usage:
-        R = ryuRest()
+        R = RyuSwitch()
         R.delete_group(payload)   # Use if statement to check if successful.
         '''
 
@@ -1328,7 +1416,7 @@ class RyuSwitch(object):
         Boolean. True if successful, False if error.
 
         Usage:
-        R = ryuRest()
+        R = RyuSwitch()
         R.modify_port(payload)   # Use if statement to check if successful.
         '''
 
@@ -1377,7 +1465,7 @@ class RyuSwitch(object):
         Boolean. True if successful, False if error.
 
         Usage:
-        R = ryuRest()
+        R = RyuSwitch()
         R.add_meter(payload)   # Use if statement to check if successful.
         '''
 
@@ -1424,7 +1512,7 @@ class RyuSwitch(object):
         Boolean. True if successful, False if error.
 
         Usage:
-        R = ryuRest()
+        R = RyuSwitch()
         R.modify_meter(payload)   # Use if statement to check if successful.
         '''
 
@@ -1467,7 +1555,7 @@ class RyuSwitch(object):
         Boolean. True if successful, False if error.
 
         Usage:
-        R = ryuRest()
+        R = RyuSwitch()
         R.delete_meter(payload)   # Use if statement to check if successful.
         '''
 
@@ -1512,7 +1600,7 @@ class RyuSwitch(object):
         Boolean. True if successful, False if error.
 
         Usage:
-        R = ryuRest()
+        R = RyuSwitch()
         R.set_role(payload)   # Use if statement to check if successful.
         '''
 
@@ -1564,7 +1652,7 @@ class RyuSwitch(object):
         Boolean. True if successful, False if error.
 
         Usage:
-        R = ryuRest()
+        R = RyuSwitch()
         R.add_flow(payload)   # Use if statement to check if successful.
         '''
 

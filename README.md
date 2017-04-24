@@ -30,10 +30,10 @@ Allows you to call the RyuSwitch methods directly (although a switch Datapath ID
 # INSTALLATION
 PIP support is WIP.
 In the interim:
-1. Clone this repository:
+**1. Clone this repository:**
 
    `$ git clone https://github.com/nathancatania/ryu-rest-python`
-2. Copy either the `ryurest.py` or `ryu_switch.py` modules to your project directory.
+**2. Copy either the `ryurest.py` or `ryu_switch.py` modules to your project directory.**
 
 # DEMO
 A demo for each module has been created to assist in usage.

@@ -20,8 +20,9 @@ Allows you to call the RyuSwitch methods directly (although a switch Datapath ID
 
    `$ pip install requests`
 
-   
+
 2. Run the Ryu controller with REST API enabled.
+
    For example, enable REST with the Ryu program `simple_switch`:
    `$ sudo ryu-manager ryu.app.simple_switch_13 ryu.app.ofctl_rest`
 
@@ -40,17 +41,17 @@ These can be found in the `demos` folder of this repository.
 # USAGE
 ## ryu_switch (Object-Orientated module)
 **1. Import this module and the RyuSwitch class into your script**
-   For example:
+
    ```python
    from ryu_switch import RyuSwitch
    ```
 
 **2. Create one or more RyuSwitch objects**
-   See demos/OO_demo.py for more info.
+
    ```python
    switch1 = RyuSwitch( DPID )
    ```
-   If you do not know any of the DPIDs of the connected switches, you can initialize with no arguments and call the .get_switches() method to return an array of DPIDs. Be sure so assign any object created in this way a DPID manually.
+   If you do not know any of the DPIDs of the connected switches, you can initialize with no arguments and call the .get_switches() method to return an array of DPIDs. Be sure so assign any object created in this way a DPID manually:
    ```python
    # Create a switch
    switch0 = RyuSwitch()
@@ -76,12 +77,13 @@ These can be found in the `demos` folder of this repository.
      * **Warning!** If altering the API path, DO NOT add a trailing '/' at the end or the API call will fail!
 
 **4. Execute the class methods as required**
-   Example:
+
    ```python
    # Gets all flows in flowtable
    flows = switch1.get_flows()
    ```
-   * Some methods have optional filters as well. Consult the ryu_switch.py module or the Ryu REST API documentation for more info.
+   * Some methods have optional filters as well.
+   * Consult the `ryu_switch.py` module or the [Ryu REST API documentation][ryu_rest_docs] for more info.
 
 ## ryurest (functional module)
 TBA
@@ -101,3 +103,4 @@ This means that you can use `if` statements to check for and handle errors accor
 
 
 [requests]: http://docs.python-requests.org/en/master/
+[ryu_rest_docs]: http://ryu.readthedocs.io/en/latest/app/ofctl_rest.html

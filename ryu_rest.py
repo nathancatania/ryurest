@@ -117,7 +117,7 @@ class RyuREST(object):
         '''
 
         # Path: /stats/desc/<DPID>
-        rest_uri = self.API + "/stats/desc/" + DPID
+        rest_uri = self.API + "/stats/desc/" + str(DPID)
 
         # Make call to REST API (GET)
         r = requests.get(rest_uri)
@@ -155,7 +155,7 @@ class RyuREST(object):
         '''
 
         # Path: /stats/flow/<DPID>
-        rest_uri = self.API + "/stats/flow/" + DPID
+        rest_uri = self.API + "/stats/flow/" + str(DPID)
 
         # If no filter defined, use GET. If filter defined, use POST.
         if not filters:
@@ -203,7 +203,7 @@ class RyuREST(object):
         '''
 
         # Path: /stats/aggregateflow/<DPID>
-        rest_uri = self.API + "/stats/aggregateflow/" + DPID
+        rest_uri = self.API + "/stats/aggregateflow/" + str(DPID)
 
         # If no filter defined, use GET. If filter defined, use POST.
         if not filters:
@@ -252,7 +252,7 @@ class RyuREST(object):
         '''
 
         # Path: /stats/table/<DPID>
-        rest_uri = self.API + "/stats/table/" + DPID
+        rest_uri = self.API + "/stats/table/" + str(DPID)
 
         # Make call to REST API (GET)
         r = requests.get(rest_uri)
@@ -287,7 +287,7 @@ class RyuREST(object):
         '''
 
         # Path: /stats/tablefeatures/<DPID>
-        rest_uri = self.API + "/stats/tablefeatures/" + DPID
+        rest_uri = self.API + "/stats/tablefeatures/" + str(DPID)
 
         # Make call to REST API (GET)
         r = requests.get(rest_uri)
@@ -320,8 +320,8 @@ class RyuREST(object):
 
         Usage:
         R = ryuRest()
-        content1 = R.get_port_stats('123917682136708', 3)    # Will get stats for ONLY Port #3.
-        content1 = R.get_port_stats('123917682136708')       # Will get stats for ALL ports
+        content = R.get_port_stats('123917682136708', 3)    # Will get stats for ONLY Port #3.
+        content = R.get_port_stats('123917682136708')       # Will get stats for ALL ports
 
         ****** KNOWN ISSUES ******
         Specifying a specific port crashes the switch - this is a FW issue. Awaiting patch.
@@ -329,45 +329,33 @@ class RyuREST(object):
         '''
 
         # Path: /stats/port/<DPID>[/portnumber]
-        rest_uri = self.API + "/stats/port/" + DPID
+        rest_uri = self.API + "/stats/port/" + str(DPID)
+
+        ########## SPECIFYING A PORT IS DISABLED DUE TO BUG ##########
+        # # If ID is specified to filter/match results, alter URI accordingly.
+        # if port is not None:
+        #     # Modify URI to filter port
+        #     rest_uri = rest_uri + '/' + str(port)
 
         # Make call to REST API (GET)
         r = requests.get(rest_uri)
 
-        # DEBUG MODE
-        if self.debug: self.debug_dump(rest_uri, r, "GET PORT STATS: NO PORT SPECIFIED")
+        # Ryu returns HTTP 200 status if successful
+        if r.status_code == 200:
 
-        return r.json()
+            # DEBUG MODE
+            if self.debug: self.debug_dump(rest_uri, r, "GET PORT STATS")
 
-        # if port is None:
-        #     # No port# specified. Get info for all ports.
-        #
-        #     # Make call to REST API (GET)
-        #     r = requests.get(rest_uri)
-        #
-        #     # DEBUG MODE
-        #     if self.debug: self.debug_dump(rest_uri, r, "GET PORT STATS: NO PORT SPECIFIED")
-        #
-        #     return r.json()
-        # else:
-        #     # Port# has been specified. Retrieve info for this port only.
-        #
-        #     # Modify URI to filter port
-        #     rest_uri = rest_uri + '/' + str(port)   # TODO: Add try/catch in case port does not exist.
-        #
-        #     # Make call to REST API (GET)
-        #     r = requests.get(rest_uri)
-        #
-        #     # DEBUG MODE
-        #     if self.debug: self.debug_dump(rest_uri, r, "GET PORT STATS: PORT #" + str(port) + " SPECIFIED")
-        #
-        #     return r.json()
+            return r.json()
+        else:
+            return False
+            # If submission fails, Ryu returns HTTP 400 status.
+            # Catch all for HTTP errors.
 
 
 
     ## ##
-    #TODO: Handle Openflow versions
-    def get_port_description(self, DPID, port=None):
+    def get_port_description(self, DPID, port=None, openflow=None):
 
         '''
         Description:
@@ -385,39 +373,39 @@ class RyuREST(object):
 
         Usage:
         R = ryuRest()
-        content1 = R.get_port_description('123917682136708', 3)    # Will get desc for ONLY Port #3. Switch must be OpenFlow v1.5+
-        content1 = R.get_port_description('123917682136708')       # Will get desc for ALL ports. OpenFlow v1.0+
+        content = R.get_port_description('123917682136708', 3)    # Will get desc for ONLY Port #3. Switch must be OpenFlow v1.5+
+        content = R.get_port_description('123917682136708')       # Will get desc for ALL ports. OpenFlow v1.0+
 
         Restrictions:
         Specifying a specific port is limited to OpenFlow v1.5 and later.
         '''
 
         # Path: /stats/portdesc/<DPID>[/portnumber] (Port number usage restricted to OpenFlow v1.5+)
-        rest_uri = self.API + "/stats/portdesc/" + DPID
+        rest_uri = self.API + "/stats/portdesc/" + str(DPID)
 
-        if port is None:
-            # No port# specified, or OpenFlow v1.0-1.4. Get info for all ports.
+        if port is not None and openflow is None:
+            print "[ WARNING ]: Port filter specified, but OpenFlow version was not. Filtering is only compatible with OpenFlow v1.5+. Defaulting to no filter & dumping all ports."
+        elif port is not None and openflow < 1.5:
+            print "[ WARNING ]: Port filter specified, but REST API does not allow filtering with specified OpenFlow version (v" + str(openflow) + "). Filtering is only compatible with OpenFlow v1.5+. Defaulting to no filter & dumping all ports."
+        elif port is not None and openflow >= 1.5:
+            # If ID is specified to filter/match results, and compatible OpenFlow version...
+            # Modify URI to filter port
+            rest_uri = rest_uri + '/' + str(port)
 
-            # Make call to REST API (GET)
-            r = requests.get(rest_uri)
+        # Make call to REST API (GET)
+        r = requests.get(rest_uri)
+
+        # Ryu returns HTTP 200 status if successful
+        if r.status_code == 200:
 
             # DEBUG MODE
-            if self.debug: self.debug_dump(rest_uri, r, "GET PORT DESCRIPTION: NO PORT SPECIFIED OR OPENFLOW v1.0-1.4")
+            if self.debug: self.debug_dump(rest_uri, r, "GET PORT DESCRIPTION")
 
             return r.json()
         else:
-            # Port# has been specified. Retrieve info for this port only.
-
-            # Modify URI to filter port
-            rest_uri = rest_uri + '/' + str(port)   # TODO: Add try/catch in case port does not exist.
-
-            # Make call to REST API (GET)
-            r = requests.get(rest_uri)
-
-            # DEBUG MODE
-            if self.debug: self.debug_dump(rest_uri, r, "GET PORT DESCRIPTION: PORT #" + str(port) + " SPECIFIED")
-
-            return r.json()
+            return False
+            # If submission fails, Ryu returns HTTP 400 status.
+            # Catch all for HTTP errors.
 
 
 
@@ -450,70 +438,52 @@ class RyuREST(object):
         '''
 
         # Path: /stats/queue/<DPID>[/portnumber[/<queue_id>]]
-        rest_uri = self.API + "/stats/queue/" + DPID
+        rest_uri = self.API + "/stats/queue/" + str(DPID)
 
-        if all(arg is None for arg in [port, queue]):
-            # No port# or queueID# specified. Dump ALL.
-
-            # Make call to REST API (GET)
-            r = requests.get(rest_uri)
-
-            # DEBUG MODE
-            if self.debug: self.debug_dump(rest_uri, r, "GET QUEUE STATS: NO PORT# OR QUEUE ID# SPECIFIED")
-
-            return r.json()
-
-        elif any(arg is None for arg in [port, queue]):
+        # Set URI based on which parameters/filters have been passed in
+        if any(arg is None for arg in [port, queue]):
             # Only one of either queueID# or port# has been specified...
 
-            if queue is None:
+            if port is not None:
                 # Port# has been specified. QueueID# has NOT been specified. Dump ALL queue stats for specified port.
 
                 # Modify URI to filter port only
-                    # Example (DPID == 1, Port == 2): http://localhost:8080/stats/queue/1/2
-                rest_uri = rest_uri + '/' + str(port)   # TODO: Add try/catch in case port does not exist.
+                    # Example (DPID == 1, Port == 2): http://localhost:8080/stats/queuedesc/1/2
+                rest_uri = rest_uri + '/' + str(port)
 
-                # Make call to REST API (GET)
-                r = requests.get(rest_uri)
-
-                # DEBUG MODE
-                if self.debug: self.debug_dump(rest_uri, r, "GET QUEUE STATS: PORT #" + str(port) + ", NO QUEUE ID# SPECIFIED")
-
-                return r.json()
-            elif port is None:
+            elif queue is not None:
                 # QueueID has been specified. Port# has NOT been specified. Dump matched QueueID for ALL ports.
 
-                # Modify URI to filter QueueID# only
-                    # Example (DPID == 1, QueueID == 4): http://localhost:8080/stats/queue/1/ALL/4
-                rest_uri = rest_uri + '/ALL/' + str(queue)   # TODO: Add try/catch in case queue does not exist.
+                # Modify URI to filter QueueID only
+                    # Example (DPID == 1, QueueID == 4): http://localhost:8080/stats/queuedesc/1/ALL/4
+                rest_uri = rest_uri + '/ALL/' + str(queue)
 
-                # Make call to REST API (GET)
-                r = requests.get(rest_uri)
-
-                # DEBUG MODE
-                if self.debug: self.debug_dump(rest_uri, r, "GET QUEUE STATS: QUEUE ID #" + str(queue) + ", NO PORT# SPECIFIED")
-
-                return r.json()
-        else:
+        elif all(arg is not None for arg in [port, queue]):
             # Both Port# AND QueueID have been specified. Dump required data only.
 
             # Modify URI to filter both Port# and QueueID#
-                # Example (DPID == 1, Port == 2, QueueID == 4): http://localhost:8080/stats/queue/1/2/4
-            rest_uri = rest_uri + '/' + str(port) + '/' + str(queue)   # TODO: Add try/catch in case port and/or queue does not exist.
+                # Example (DPID == 1, Port == 2, QueueID == 4): http://localhost:8080/stats/queuedesc/1/2/4
+            rest_uri = rest_uri + '/' + str(port) + '/' + str(queue)
 
-            # Make call to REST API (GET)
-            r = requests.get(rest_uri)
+        # Make call to REST API (GET)
+        r = requests.get(rest_uri)
+
+        # Ryu returns HTTP 200 status if successful
+        if r.status_code == 200:
 
             # DEBUG MODE
-            if self.debug: self.debug_dump(rest_uri, r, "GET QUEUE STATS: QUEUE ID #" + str(queue) + ", PORT #" + str(port))
+            if self.debug: self.debug_dump(rest_uri, r, "GET QUEUE STATS")
 
             return r.json()
+        else:
+            return False
+            # If submission fails, Ryu returns HTTP 400 status.
+            # Catch all for HTTP errors.
 
 
 
     ## ##
-    #TODO: Handle Openflow versions
-    # OPENFLOW VERSION 1.0-1.3 ONLY
+    # OPENFLOW v1.0-1.3 ONLY
     def get_queue_config(self, DPID, port=None):
 
         '''
@@ -540,38 +510,33 @@ class RyuREST(object):
         '''
 
         # Path: /stats/queueconfig/<DPID>[/portnumber] (API is DEPRECIATED in OpenFlow v1.4+)
-        rest_uri = self.API + "/stats/queueconfig/" + DPID
+        rest_uri = self.API + "/stats/queueconfig/" + str(DPID)
 
-        if port is None:
-            # No port# specified. Get queue info for all ports.
+        # If ID is specified to filter/match results, alter URI accordingly.
+        if port is not None:
+            # Modify URI to filter port
+            rest_uri = rest_uri + '/' + str(port)
 
-            # Make call to REST API (GET)
-            r = requests.get(rest_uri)
+        # Make call to REST API (GET)
+        r = requests.get(rest_uri)
+
+        # Ryu returns HTTP 200 status if successful
+        if r.status_code == 200:
 
             # DEBUG MODE
-            if self.debug: self.debug_dump(rest_uri, r, "(OPENFLOW v1.0-1.3) GET QUEUE CONFIG: NO PORT SPECIFIED")
+            if self.debug: self.debug_dump(rest_uri, r, "(OPENFLOW v1.0 - 1.3) GET QUEUE CONFIG")
 
             return r.json()
         else:
-            # Port# has been specified. Retrieve info for this port only.
-
-            # Modify URI to filter port
-            rest_uri = rest_uri + '/' + str(port)   # TODO: Add try/catch in case port does not exist.
-
-            # Make call to REST API (GET)
-            r = requests.get(rest_uri)
-
-            # DEBUG MODE
-            if self.debug: self.debug_dump(rest_uri, r, "(OPENFLOW v1.0-1.3) GET QUEUE CONFIG: PORT #" + str(port) + " SPECIFIED")
-
-            return r.json()
+            return False
+            # If submission fails, Ryu returns HTTP 400 status.
+            # Catch all for HTTP errors.
 
 
 
     ## ##
-    #TODO: Handle Openflow versions
-    # OPENFLOW VERSION 1.4+ ONLY
-    def get_queue_decription(self, DPID, port=None, queue=None):
+    # OPENFLOW v1.4+ ONLY
+    def get_queue_description(self, DPID, port=None, queue=None):
 
         '''
         Description:
@@ -600,64 +565,47 @@ class RyuREST(object):
         '''
 
         # Path: /stats/queuedesc/<DPID>[/portnumber[/<queue_id>]]
-        rest_uri = self.API + "/stats/queuedesc/" + DPID
+        rest_uri = self.API + "/stats/queuedesc/" + str(DPID)
 
-        if all(arg is None for arg in [port, queue]):
-            # No port# or queueID# specified. Dump ALL.
-
-            # Make call to REST API (GET)
-            r = requests.get(rest_uri)
-
-            # DEBUG MODE
-            if self.debug: self.debug_dump(rest_uri, r, "(OPENFLOW v1.4+) GET QUEUE DESCRIPTION: NO PORT# OR QUEUE ID# SPECIFIED")
-
-            return r.json()
-
-        elif any(arg is None for arg in [port, queue]):
+        # Set URI based on which parameters/filters have been passed in
+        if any(arg is None for arg in [port, queue]):
             # Only one of either queueID# or port# has been specified...
 
-            if queue is None:
+            if port is not None:
                 # Port# has been specified. QueueID# has NOT been specified. Dump ALL queue descriptions for specified port.
 
                 # Modify URI to filter port only
                     # Example (DPID == 1, Port == 2): http://localhost:8080/stats/queuedesc/1/2
-                rest_uri = rest_uri + '/' + str(port)   # TODO: Add try/catch in case port does not exist.
+                rest_uri = rest_uri + '/' + str(port)
 
-                # Make call to REST API (GET)
-                r = requests.get(rest_uri)
-
-                # DEBUG MODE
-                if self.debug: self.debug_dump(rest_uri, r, "(OPENFLOW v1.4+) GET QUEUE DESCRIPTION: PORT #" + str(port) + ", NO QUEUE ID# SPECIFIED")
-
-                return r.json()
-            elif port is None:
+            elif queue is not None:
                 # QueueID has been specified. Port# has NOT been specified. Dump matched QueueID for ALL ports.
 
-                # Modify URI to filter QueueID# only
+                # Modify URI to filter QueueID only
                     # Example (DPID == 1, QueueID == 4): http://localhost:8080/stats/queuedesc/1/ALL/4
-                rest_uri = rest_uri + '/ALL/' + str(queue)   # TODO: Add try/catch in case queue does not exist.
+                rest_uri = rest_uri + '/ALL/' + str(queue)
 
-                # Make call to REST API (GET)
-                r = requests.get(rest_uri)
-
-                # DEBUG MODE
-                if self.debug: self.debug_dump(rest_uri, r, "(OPENFLOW v1.4+) GET QUEUE DESCRIPTION: QUEUE ID #" + str(queue) + ", NO PORT# SPECIFIED")
-
-                return r.json()
-        else:
+        elif all(arg is not None for arg in [port, queue]):
             # Both Port# AND QueueID have been specified. Dump required data only.
 
             # Modify URI to filter both Port# and QueueID#
                 # Example (DPID == 1, Port == 2, QueueID == 4): http://localhost:8080/stats/queuedesc/1/2/4
-            rest_uri = rest_uri + '/' + str(port) + '/' + str(queue)   # TODO: Add try/catch in case port and/or queue does not exist.
+            rest_uri = rest_uri + '/' + str(port) + '/' + str(queue)
 
-            # Make call to REST API (GET)
-            r = requests.get(rest_uri)
+        # Make call to REST API (GET)
+        r = requests.get(rest_uri)
+
+        # Ryu returns HTTP 200 status if successful
+        if r.status_code == 200:
 
             # DEBUG MODE
-            if self.debug: self.debug_dump(rest_uri, r, "(OPENFLOW v1.4+) GET QUEUE DESCRIPTION: QUEUE ID #" + str(queue) + ", PORT #" + str(port))
+            if self.debug: self.debug_dump(rest_uri, r, "(OPENFLOW 1.4+) GET QUEUE DESCRIPTION")
 
             return r.json()
+        else:
+            return False
+            # If submission fails, Ryu returns HTTP 400 status.
+            # Catch all for HTTP errors.
 
 
 
@@ -682,42 +630,37 @@ class RyuREST(object):
 
         Usage:
         R = ryuRest()
-        content1 = R.get_group_stats('123917682136708', 3)    # Will get stats for ONLY group #3.
-        content1 = R.get_group_stats('123917682136708')       # Will get stats for ALL groups
+        content = R.get_group_stats('123917682136708', 3)    # Will get stats for ONLY group #3.
+        content = R.get_group_stats('123917682136708')       # Will get stats for ALL groups
         '''
 
         # Path: /stats/group/<DPID>[/portnumber]
-        rest_uri = self.API + "/stats/group/" + DPID
+        rest_uri = self.API + "/stats/group/" + str(DPID)
 
-        if group is None:
-            # No groupID# specified. Get info for all groups.
+        # If ID is specified to filter/match results, alter URI accordingly.
+        if group is not None:
+            # Modify URI to filter meters
+            rest_uri = rest_uri + '/' + str(group)
 
-            # Make call to REST API (GET)
-            r = requests.get(rest_uri)
+        # Make call to REST API (GET)
+        r = requests.get(rest_uri)
+
+        # Ryu returns HTTP 200 status if successful
+        if r.status_code == 200:
 
             # DEBUG MODE
-            if self.debug: self.debug_dump(rest_uri, r, "GET GROUP STATS: NO GROUP ID# SPECIFIED")
+            if self.debug: self.debug_dump(rest_uri, r, "GET GROUP STATS")
 
             return r.json()
         else:
-            # GroupID# has been specified. Retrieve info for this groupID only.
-
-            # Modify URI to filter port
-            rest_uri = rest_uri + '/' + str(group)   # TODO: Add try/catch in case groupID# does not exist.
-
-            # Make call to REST API (GET)
-            r = requests.get(rest_uri)
-
-            # DEBUG MODE
-            if self.debug: self.debug_dump(rest_uri, r, "GET GROUP STATS: GROUP ID #" + str(group) + " SPECIFIED")
-
-            return r.json()
+            return False
+            # If submission fails, Ryu returns HTTP 400 status.
+            # Catch all for HTTP errors.
 
 
 
     ## ##
-    #TODO: Handle Openflow versions
-    def get_group_description(self, DPID, port=None):
+    def get_group_description(self, DPID, port=None, openflow=None):
 
         '''
         Description:
@@ -735,39 +678,39 @@ class RyuREST(object):
 
         Usage:
         R = ryuRest()
-        content1 = R.get_group_description('123917682136708', 3)    # Will get desc for ONLY Group ID #3. Switch must be OpenFlow v1.5+
-        content1 = R.get_group_description('123917682136708')       # Will get desc for ALL groups. OpenFlow v1.0 - v1.4
+        content = R.get_group_description('123917682136708', 3)    # Will get desc for ONLY Group ID #3. Switch must be OpenFlow v1.5+
+        content = R.get_group_description('123917682136708')       # Will get desc for ALL groups. OpenFlow v1.0 - v1.4
 
         Restrictions:
         Specifying a specific groupID is limited to OpenFlow v1.5 and later.
         '''
 
         # Path: /stats/groupdesc/<DPID>[/portnumber] (Port number usage restricted to OpenFlow v1.5+)
-        rest_uri = self.API + "/stats/groupdesc/" + DPID
+        rest_uri = self.API + "/stats/groupdesc/" + str(DPID)
 
-        if port is None:
-            # No group ID# specified, or OpenFlow v1.0-1.4. Get info for all groups.
+        if port is not None and openflow is None:
+            print "[ WARNING ]: Port filter specified, but OpenFlow version was not. Filtering is only compatible with OpenFlow v1.5+. Defaulting to no filter & dumping all ports."
+        elif port is not None and openflow < 1.5:
+            print "[ WARNING ]: Port filter specified, but REST API does not allow filtering with specified OpenFlow version (v" + str(openflow) + "). Filtering is only compatible with OpenFlow v1.5+. Defaulting to no filter & dumping all ports."
+        elif port is not None and openflow >= 1.5:
+            # If ID is specified to filter/match results, and compatible OpenFlow version...
+            # Modify URI to filter port
+            rest_uri = rest_uri + '/' + str(port)
 
-            # Make call to REST API (GET)
-            r = requests.get(rest_uri)
+        # Make call to REST API (GET)
+        r = requests.get(rest_uri)
+
+        # Ryu returns HTTP 200 status if successful
+        if r.status_code == 200:
 
             # DEBUG MODE
-            if self.debug: self.debug_dump(rest_uri, r, "GET GROUP DESCRIPTION: NO GROUP SPECIFIED OR OPENFLOW v1.0-1.4")
+            if self.debug: self.debug_dump(rest_uri, r, "GET GROUP DESC")
 
             return r.json()
         else:
-            # Group ID# has been specified. Retrieve info for this group only. (RESTRICTED TO OPENFLOW v1.5+)
-
-            # Modify URI to filter port
-            rest_uri = rest_uri + '/' + str(port)   # TODO: Add try/catch in case port does not exist.
-
-            # Make call to REST API (GET)
-            r = requests.get(rest_uri)
-
-            # DEBUG MODE
-            if self.debug: self.debug_dump(rest_uri, r, "GET GROUP DESCRIPTION: GROUP ID #" + str(port) + " SPECIFIED")
-
-            return r.json()
+            return False
+            # If submission fails, Ryu returns HTTP 400 status.
+            # Catch all for HTTP errors.
 
 
 
@@ -793,15 +736,22 @@ class RyuREST(object):
         '''
 
         # Path: /stats/groupfeatures/<DPID>
-        rest_uri = self.API + "/stats/groupfeatures/" + DPID
+        rest_uri = self.API + "/stats/groupfeatures/" + str(DPID)
 
         # Make call to REST API (GET)
         r = requests.get(rest_uri)
 
-        # DEBUG MODE
-        if self.debug: self.debug_dump(rest_uri, r, "GET GROUP FEATURES")
+        # Ryu returns HTTP 200 status if successful
+        if r.status_code == 200:
 
-        return r.json()
+            # DEBUG MODE
+            if self.debug: self.debug_dump(rest_uri, r, "GET GROUP FEATURES")
+
+            return r.json()
+        else:
+            return False
+            # If submission fails, Ryu returns HTTP 400 status.
+            # Catch all for HTTP errors.
 
 
 
@@ -831,31 +781,27 @@ class RyuREST(object):
         '''
 
         # Path: /stats/group/<DPID>[/portnumber]
-        rest_uri = self.API + "/stats/meter/" + DPID
+        rest_uri = self.API + "/stats/meter/" + str(DPID)
 
-        if meter is None:
-            # No meter ID# specified. Get info for all meters.
+        # If ID is specified to filter/match results, alter URI accordingly.
+        if meter is not None:
+            # Modify URI to filter meters
+            rest_uri = rest_uri + '/' + str(meter)
 
-            # Make call to REST API (GET)
-            r = requests.get(rest_uri)
+        # Make call to REST API (GET)
+        r = requests.get(rest_uri)
+
+        # Ryu returns HTTP 200 status if successful
+        if r.status_code == 200:
 
             # DEBUG MODE
-            if self.debug: self.debug_dump(rest_uri, r, "GET METER STATS: NO METER ID# SPECIFIED")
+            if self.debug: self.debug_dump(rest_uri, r, "GET METER STATS")
 
             return r.json()
         else:
-            # Meter ID# has been specified. Retrieve info for this meter ID only.
-
-            # Modify URI to filter port
-            rest_uri = rest_uri + '/' + str(meter)   # TODO: Add try/catch in case meter ID# does not exist.
-
-            # Make call to REST API (GET)
-            r = requests.get(rest_uri)
-
-            # DEBUG MODE
-            if self.debug: self.debug_dump(rest_uri, r, "GET METER STATS: METER ID #" + str(meter) + " SPECIFIED")
-
-            return r.json()
+            return False
+            # If submission fails, Ryu returns HTTP 400 status.
+            # Catch all for HTTP errors.
 
 
 
@@ -897,11 +843,11 @@ class RyuREST(object):
         if openflow < 1.5:
             # OpenFlow v1.0 - 1.4
             # REST API path: /stats/meterconfig/<dpid>[/<meter_id>]
-            rest_uri = self.API + "/stats/meterconfig/" + DPID
+            rest_uri = self.API + "/stats/meterconfig/" + str(DPID)
         else:
             # OpenFlow v1.5+
             # REST API path: /stats/meterdesc/<dpid>[/<meter_id>]
-            rest_uri = self.API + "/stats/meterdesc/" + DPID
+            rest_uri = self.API + "/stats/meterdesc/" + str(DPID)
 
         # If ID is specified to filter/match results, alter URI accordingly.
         if meter is not None:
@@ -911,10 +857,17 @@ class RyuREST(object):
         # Make call to REST API (GET)
         r = requests.get(rest_uri)
 
-        # DEBUG MODE
-        if self.debug: self.debug_dump(rest_uri, r, "GET METER DESCRIPTION: OPENFLOW VERSION v" + str(openflow))
+        # Ryu returns HTTP 200 status if successful
+        if r.status_code == 200:
 
-        return r.json()
+            # DEBUG MODE
+            if self.debug: self.debug_dump(rest_uri, r, "GET METER DESCRIPTION: OPENFLOW VERSION v" + str(openflow))
+
+            return r.json()
+        else:
+            return False
+            # If submission fails, Ryu returns HTTP 400 status.
+            # Catch all for HTTP errors.
 
 
 
@@ -940,7 +893,7 @@ class RyuREST(object):
         '''
 
         # Path: /stats/meterfeatures/<DPID>
-        rest_uri = self.API + "/stats/meterfeatures/" + DPID
+        rest_uri = self.API + "/stats/meterfeatures/" + str(DPID)
 
         # Make call to REST API (GET)
         r = requests.get(rest_uri)
@@ -988,7 +941,7 @@ class RyuREST(object):
         return None
 
         # # Path: /stats/role/<DPID>
-        # rest_uri = self.API + "/stats/role/" + DPID
+        # rest_uri = self.API + "/stats/role/" + str(DPID)
         #
         # # Make call to REST API (GET)
         # r = requests.get(rest_uri)
@@ -1284,7 +1237,7 @@ class RyuREST(object):
         '''
 
         # Path: /stats/flowentry/modify_strict
-        rest_uri = self.API + "/stats/flowentry/clear/" + DPID
+        rest_uri = self.API + "/stats/flowentry/clear/" + str(DPID)
 
         # Make call to REST API (DELETE)
         r = requests.delete(rest_uri)
@@ -1736,7 +1689,7 @@ class RyuREST(object):
         '''
 
         # Path: /stats/experimenter/<dpid>
-        rest_uri = self.API + "/stats/flowentry/add/" + DPID
+        rest_uri = self.API + "/stats/flowentry/add/" + str(DPID)
 
         # Make call to REST API (POST)
         r = requests.post(rest_uri, json=payload) # payload encoded to JSON
@@ -1768,7 +1721,7 @@ class RyuREST(object):
 if __name__ == "__main__":
 
     ### TESTING ###
-    DPID = "123917682136708"
+    DPID = 123917682136708
 
     R = RyuREST()
 
@@ -1784,17 +1737,25 @@ if __name__ == "__main__":
     #R.get_port_stats(DPID, 3) # DISABLED [Zodiac FX BUG]
     #R.get_port_stats(DPID, 4) # DISABLED [Zodiac FX BUG]
     #R.get_port_description(DPID)
+    #R.get_port_description(DPID, 1)
+    #R.get_port_description(DPID, 1, 1.4)
+    #R.get_port_description(DPID, 1, 1.5)
     #R.get_queue_stats(DPID)
     #R.get_queue_stats(DPID, port=3)
     #R.get_queue_stats(DPID, queue=1)
     #R.get_queue_stats(DPID, port=2, queue=2)
     #R.get_queue_config(DPID)            # Restricted to OpenFlow <v1.0 - 1.3
     #R.get_queue_config(DPID, 3)         # Restricted to OpenFlow <v1.0 - 1.3
-    #R.get_queue_description(DPID)       # Requires OpenFlow v1.4+
-    #R.get_queue_description(DPID, 3)    # Requires OpenFlow v1.4+
+    #R.get_queue_description(DPID)                     # Requires OpenFlow v1.4+
+    #R.get_queue_description(DPID, port=3)             # Requires OpenFlow v1.4+
+    #R.get_queue_description(DPID, queue=3)            # Requires OpenFlow v1.4+
+    #R.get_queue_description(DPID, port=3, queue=3)    # Requires OpenFlow v1.4+
     #R.get_group_stats(DPID)
     #R.get_group_stats(DPID, 3)
     #R.get_group_description(DPID)
+    #R.get_group_description(DPID, 1)
+    #R.get_group_description(DPID, 1, 1.4)
+    #R.get_group_description(DPID, 1, 1.5)
     #R.get_group_features(DPID)
     #R.get_meter_stats(DPID)
     #R.get_meter_stats(DPID, 1)
@@ -1804,4 +1765,3 @@ if __name__ == "__main__":
     #R.get_meter_description(DPID, 3, 1.5)      # Will fail. Zodiac FX is not OF v1.5
     #R.get_meter_features(DPID)
     #R.get_role(DPID) # DISABLED [RYU REST API BUG]
-    R.send_experimenter()

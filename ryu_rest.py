@@ -1,14 +1,16 @@
 #!/usr/bin/env python
 import requests
-import sys
+import sys # Only used to enable debug mode
 
-import json
-
-# From docs: http://ryu.readthedocs.io/en/latest/app/ofctl_rest.html
+# REST API Documentation: http://ryu.readthedocs.io/en/latest/app/ofctl_rest.html
 
 
+# To enable debug mode, run the program and specify the command-line argument "debug" (without the quotes).
+# Example: ./ryu_rest debug
 
-class ryuRest(object):
+
+
+class RyuREST(object):
 
 
     def __init__(self):
@@ -31,7 +33,20 @@ class ryuRest(object):
         print "OUTPUT:"
         print str(r.json()) + '\n'
 
+    def debug_data(self, rest_uri, payload, title=None):
+        if title is not None:
+            print "#### " + title + " ####"
+        print "REST URI:"
+        print rest_uri
+        print "PAYLOAD:"
+        print payload
+        print ""
 
+
+
+    #########################################
+    ###     GET DATA FROM THE SWITCH      ###
+    #########################################
 
     ###### Retrieve Switch Information ######
 
@@ -790,6 +805,960 @@ class ryuRest(object):
 
 
 
+    ###### Retrieve Meter Information ######
+
+    ## ##
+    def get_meter_stats(self, DPID, meter=None):
+
+        '''
+        Description:
+        Get meters stats of the switch which specified with Datapath ID in URI.
+
+        Link:
+        http://ryu.readthedocs.io/en/latest/app/ofctl_rest.html#get-meters-stats
+
+        Arguments:
+        DPID: Datapath ID (DPID) of the target switch.
+        meter: [OPTIONAL] Specific meter ID# to grab stats for. If not specfied, info for all meters are returned.
+
+        Return value:
+        JSON structure containing the meter statistics. See link above for description of stats.
+
+        Usage:
+        R = ryuRest()
+        content1 = R.get_meter_stats('123917682136708', 3)    # Will get stats for ONLY meter ID #3.
+        content1 = R.get_meter_stats('123917682136708')       # Will get stats for ALL meters
+        '''
+
+        # Path: /stats/group/<DPID>[/portnumber]
+        rest_uri = self.API + "/stats/meter/" + DPID
+
+        if meter is None:
+            # No meter ID# specified. Get info for all meters.
+
+            # Make call to REST API (GET)
+            r = requests.get(rest_uri)
+
+            # DEBUG MODE
+            if self.debug: self.debug_dump(rest_uri, r, "GET METER STATS: NO METER ID# SPECIFIED")
+
+            return r.json()
+        else:
+            # Meter ID# has been specified. Retrieve info for this meter ID only.
+
+            # Modify URI to filter port
+            rest_uri = rest_uri + '/' + str(meter)   # TODO: Add try/catch in case meter ID# does not exist.
+
+            # Make call to REST API (GET)
+            r = requests.get(rest_uri)
+
+            # DEBUG MODE
+            if self.debug: self.debug_dump(rest_uri, r, "GET METER STATS: METER ID #" + str(meter) + " SPECIFIED")
+
+            return r.json()
+
+
+
+    ## ##
+    #TODO: Handle Openflow versions
+    #NOTE: THIS CODE IS OK FORMAT.
+    def get_meter_description(self, DPID, meter=None, openflow=1.0):
+
+        '''
+        Description:
+        Get meter config stats of the switch which specified with Datapath ID in URI.
+
+        Link:
+        http://ryu.readthedocs.io/en/latest/app/ofctl_rest.html#get-meter-description-stats
+
+        Arguments:
+        DPID: Datapath ID (DPID) of the target switch.
+        meter: [OPTIONAL] Specific meter ID# to grab description for. If not specfied, info for all meters is returned.
+        openflow: [OPTIONAL] The OpenFlow version of the switch. If not specified, will default to v1.0. This method returns differently if OpenFlow version is 1.5+
+
+        Return value:
+        JSON structure containing the meter decriptions. See link above for example message body.
+
+        Usage:
+        R = ryuRest()
+        DPID = "123917682136708"
+        content = R.get_meter_description(DPID, 3)    # Will get desc for Meter ID #3 ONLY. Assumes OpenFlow v1.0-1.4 for calling API.
+        content = R.get_meter_description(DPID)       # Will get desc for ALL meters. Assumes OpenFlow v1.0-1.4 for calling API.
+        content = R.get_meter_description(DPID, meter=3, openflow=1.5)   # Will get desc for Meter ID #3. Runs API call for Openflow 1.5+.
+
+        Restrictions:
+        API URI was renamed for OpenFlow v1.5+ :
+        /stats/meterconfig/<dpid>[/<meter_id>] - OpenFlow 1.0 - 1.4
+        /stats/meterdesc/<dpid>[/<meter_id>]   - OpenFlow 1.5+
+        Pass in OpenFlow version as argument if using 1.5+, else method will execute v1.0-1.4 call.
+        '''
+
+        # Set URI based on OpenFlow version
+        if openflow < 1.5:
+            # OpenFlow v1.0 - 1.4
+            # REST API path: /stats/meterconfig/<dpid>[/<meter_id>]
+            rest_uri = self.API + "/stats/meterconfig/" + DPID
+        else:
+            # OpenFlow v1.5+
+            # REST API path: /stats/meterdesc/<dpid>[/<meter_id>]
+            rest_uri = self.API + "/stats/meterdesc/" + DPID
+
+        # If ID is specified to filter/match results, alter URI accordingly.
+        if meter is not None:
+            # Modify URI to filter meters
+            rest_uri = rest_uri + '/' + str(meter)   # TODO: Add try/catch in case meter does not exist.
+
+        # Make call to REST API (GET)
+        r = requests.get(rest_uri)
+
+        # DEBUG MODE
+        if self.debug: self.debug_dump(rest_uri, r, "GET METER DESCRIPTION: OPENFLOW VERSION v" + str(openflow))
+
+        return r.json()
+
+
+
+    ## ##
+    def get_meter_features(self, DPID):
+
+        '''
+        Description:
+        Get meter features stats of the switch which specified with Datapath ID in URI.
+
+        Link:
+        http://ryu.readthedocs.io/en/latest/app/ofctl_rest.html#get-meter-features-stats
+
+        Arguments:
+        Datapath ID (DPID) of the target switch.
+
+        Return value:
+        JSON structure containing aggregated feature information for all meters on the specified switch.
+
+        Usage:
+        R = ryuRest()
+        content = R.get_meter_features('123917682136708')
+        '''
+
+        # Path: /stats/meterfeatures/<DPID>
+        rest_uri = self.API + "/stats/meterfeatures/" + DPID
+
+        # Make call to REST API (GET)
+        r = requests.get(rest_uri)
+
+        # Ryu returns HTTP 200 status if successful
+        if r.status_code == 200:
+
+            # DEBUG MODE
+            if self.debug: self.debug_dump(rest_uri, r, "GET METER FEATURES")
+
+            return r.json()
+        else:
+            return False
+            # If submission fails, Ryu returns HTTP 400 status.
+            # Catch all for HTTP errors.
+
+
+
+    ###### Retrieve Controller Information ######
+
+    ## ##
+    def get_role(self, DPID):
+
+        '''
+        Description:
+        Get the current role of the controller from the switch.
+
+        Link:
+        http://ryu.readthedocs.io/en/latest/app/ofctl_rest.html#get-role
+
+        Arguments:
+        Datapath ID (DPID) of the target switch.
+
+        Return value:
+        JSON structure containing the role information of the controller in respect to the switch.
+
+        Usage:
+        R = ryuRest()
+        content = R.get_role('123917682136708')
+
+        ****** KNOWN ISSUES ******
+        Calling this REST API returns a 404 error which indicates the API does not exist in RYU.
+        '''
+        # This method is currently disabled due to RYU bug in REST API (404 error)
+        return None
+
+        # # Path: /stats/role/<DPID>
+        # rest_uri = self.API + "/stats/role/" + DPID
+        #
+        # # Make call to REST API (GET)
+        # r = requests.get(rest_uri)
+        #
+        # # DEBUG MODE
+        # if self.debug: self.debug_dump(rest_uri, r, "GET ROLE")
+        #
+        # # Ryu returns HTTP 200 status if successful
+        # if r.status_code == 200:
+        #     return r.json()
+        # else:
+        #     return False
+        #     # If submission fails, Ryu returns HTTP 400 status.
+        #     # Catch all for HTTP errors.
+
+
+
+    #########################################
+    ###       SET DATA ON THE SWITCH      ###
+    #########################################
+
+    ###### Modify Flow Entries ######
+
+    ## ##
+    def add_flow(self, payload):
+
+        '''
+        Description:
+        Add a flow entry to the switch.
+
+        Link:
+        http://ryu.readthedocs.io/en/latest/app/ofctl_rest.html#add-a-flow-entry
+
+        Arguments:
+        payload: Data payload containing flow information to add to the flowtable.
+
+        Payload structure:
+        Dictionary format. DPID of target is specified in payload. Example:
+            payload = {
+                "dpid": 123456789, "cookie": 1, "cookie_mask": 1, "table_id": 0,
+                "idle_timeout": 30, "hard_timeout": 30, "priority": 100,
+                "flags": 1, "match":{ "in_port":1 },
+                "actions":[{ "type":"OUTPUT", "port": 2 }]
+             }
+         See link for details on how to construct payload.
+
+        Return value:
+        Boolean. True if successful, False if error.
+
+        Usage:
+        R = ryuRest()
+        R.add_flow(payload)   # Use if statement to check if successful.
+        '''
+
+        # Path: /stats/flowentry/add
+        rest_uri = self.API + "/stats/flowentry/add"
+
+        # Make call to REST API (POST)
+        r = requests.post(rest_uri, json=payload) # payload encoded to JSON
+
+        # DEBUG MODE
+        if self.debug: self.debug_data(rest_uri, payload, "ADD FLOW ENTRY")
+
+        # Ryu returns HTTP 200 status if successful
+        if r.status_code == 200:
+            return True
+        else:
+            return False
+            # If submission fails, Ryu returns HTTP 400 status.
+            # Catch all for HTTP errors.
+
+
+
+    ## ##
+    def modify_flow(self, payload):
+
+        '''
+        Description:
+        Modify ** ALL ** matching flow entries of the switch.
+
+        Link:
+        http://ryu.readthedocs.io/en/latest/app/ofctl_rest.html#modify-all-matching-flow-entries
+
+        Arguments:
+        payload: Data payload containing flow information to match and modify.
+
+        Payload structure:
+        Dictionary format. DPID of target is specified in payload. Example:
+            payload = {
+                "dpid": 123456789, "cookie": 1, "cookie_mask": 1, "table_id": 0,
+                "idle_timeout": 30, "hard_timeout": 30, "priority": 100,
+                "flags": 1, "match":{ "in_port":1 },
+                "actions":[{ "type":"OUTPUT", "port": 2 }]
+             }
+        See link for details on how to construct payload.
+
+        Return value:
+        Boolean. True if successful, False if error.
+
+        Usage:
+        R = ryuRest()
+        R.modify_flow(payload)   # Use if statement to check if successful.
+        '''
+
+        # Path: /stats/flowentry/modify
+        rest_uri = self.API + "/stats/flowentry/modify"
+
+        # Make call to REST API (POST)
+        r = requests.post(rest_uri, json=payload) # payload encoded to JSON
+
+        # DEBUG MODE
+        if self.debug: self.debug_data(rest_uri, payload, "MODIFY FLOW ENTRY")
+
+        # Ryu returns HTTP 200 status if successful
+        if r.status_code == 200:
+            return True
+        else:
+            return False
+            # If submission fails, Ryu returns HTTP 400 status.
+            # Catch all for HTTP errors.
+
+
+
+    ## ##
+    def modify_flow_strict(self, payload):
+
+        '''
+        Description:
+        Modify flow entry strictly matching wildcards and priority
+
+        Link:
+        http://ryu.readthedocs.io/en/latest/app/ofctl_rest.html#modify-flow-entry-strictly
+
+        Arguments:
+        payload: Data payload containing flow information to match and modify.
+
+        Payload structure:
+        Dictionary format. DPID of target is specified in payload. Example:
+            payload = {
+                "dpid": 123456789, "cookie": 1, "cookie_mask": 1, "table_id": 0,
+                "idle_timeout": 30, "hard_timeout": 30, "priority": 100,
+                "flags": 1, "match":{ "in_port":1 },
+                "actions":[{ "type":"OUTPUT", "port": 2 }]
+            }
+        See link for details on how to construct payload.
+
+        Return value:
+        Boolean. True if successful, False if error.
+
+        Usage:
+        R = ryuRest()
+        R.modify_flow_strict(payload)   # Use if statement to check if successful.
+        '''
+
+        # Path: /stats/flowentry/modify_strict
+        rest_uri = self.API + "/stats/flowentry/modify_strict"
+
+        # Make call to REST API (POST)
+        r = requests.post(rest_uri, json=payload) # payload encoded to JSON
+
+        # DEBUG MODE
+        if self.debug: self.debug_data(rest_uri, payload, "MODIFY FLOW ENTRY STRICT")
+
+        # Ryu returns HTTP 200 status if successful
+        if r.status_code == 200:
+            return True
+        else:
+            return False
+            # If submission fails, Ryu returns HTTP 400 status.
+            # Catch all for HTTP errors.
+
+
+
+    ## ##
+    def delete_flow(self, payload):
+
+        '''
+        Description:
+        Delete ** ALL ** matching flow entries of the switch.
+
+        Link:
+        http://ryu.readthedocs.io/en/latest/app/ofctl_rest.html#delete-all-matching-flow-entries
+
+        Arguments:
+        payload: Data payload containing flow information to match and delete.
+
+        Payload structure:
+        Dictionary format. DPID of target is specified in payload. Example:
+            payload = {
+                "dpid": 123456789, "cookie": 1, "cookie_mask": 1, "table_id": 0,
+                "idle_timeout": 30, "hard_timeout": 30, "priority": 100,
+                "flags": 1, "match":{ "in_port":1 },
+                "actions":[{ "type":"OUTPUT", "port": 2 }]
+            }
+        See link for details on how to construct payload.
+
+        Return value:
+        Boolean. True if successful, False if error.
+
+        Usage:
+        R = ryuRest()
+        R.delete_flow(payload)   # Use if statement to check if successful.
+        '''
+
+        # Path: /stats/flowentry/modify_strict
+        rest_uri = self.API + "/stats/flowentry/delete"
+
+        # Make call to REST API (POST)
+        r = requests.post(rest_uri, json=payload) # payload encoded to JSON
+
+        # DEBUG MODE
+        if self.debug: self.debug_data(rest_uri, payload, "DELETE FLOW ENTRY")
+
+        # Ryu returns HTTP 200 status if successful
+        if r.status_code == 200:
+            return True
+        else:
+            return False
+            # If submission fails, Ryu returns HTTP 400 status.
+            # Catch all for HTTP errors.
+
+
+
+    ## ##
+    def delete_flow_strict(self, payload):
+
+        '''
+        Description:
+        Delete flow entry strictly matching wildcards and priority.
+
+        Link:
+        http://ryu.readthedocs.io/en/latest/app/ofctl_rest.html#delete-flow-entry-strictly
+
+        Arguments:
+        payload: Data payload containing flow information to match and delete.
+
+        Payload structure:
+        Dictionary format. DPID of target is specified in payload. Example:
+            payload = {
+                "dpid": 123456789, "cookie": 1, "cookie_mask": 1, "table_id": 0,
+                "idle_timeout": 30, "hard_timeout": 30, "priority": 100,
+                "flags": 1, "match":{ "in_port":1 },
+                "actions":[{ "type":"OUTPUT", "port": 2 }]
+            }
+        See link for details on how to construct payload.
+
+        Return value:
+        Boolean. True if successful, False if error.
+
+        Usage:
+        R = ryuRest()
+        R.delete_flow_strict(payload)   # Use if statement to check if successful.
+        '''
+
+        # Path: /stats/flowentry/modify_strict
+        rest_uri = self.API + "/stats/flowentry/delete_strict"
+
+        # Make call to REST API (POST)
+        r = requests.post(rest_uri, json=payload) # payload encoded to JSON
+
+        # DEBUG MODE
+        if self.debug: self.debug_data(rest_uri, payload, "DELETE FLOW ENTRY STRICT")
+
+        # Ryu returns HTTP 200 status if successful
+        if r.status_code == 200:
+            return True
+        else:
+            return False
+            # If submission fails, Ryu returns HTTP 400 status.
+            # Catch all for HTTP errors.
+
+
+
+    ## ##
+    def delete_flow_all(self, DPID):
+
+        '''
+        Description:
+        Delete ** ALL ** flow entries of the switch which specified with Datapath ID in URI.
+
+        Link:
+        http://ryu.readthedocs.io/en/latest/app/ofctl_rest.html#delete-flow-entry-strictly
+
+        Arguments:
+        DPID: Datapath ID (DPID) of the target switch.
+
+        Return value:
+        Boolean. True if successful, False if error.
+
+        Usage:
+        R = ryuRest()
+        R.delete_flow_all(DPID)   # Use if statement to check if successful.
+        '''
+
+        # Path: /stats/flowentry/modify_strict
+        rest_uri = self.API + "/stats/flowentry/clear/" + DPID
+
+        # Make call to REST API (DELETE)
+        r = requests.delete(rest_uri)
+
+        # DEBUG MODE
+        if self.debug: print "DELETE ALL FLOW ENTRIES!"
+
+        # Ryu returns HTTP 200 status if successful
+        if r.status_code == 200:
+            return True
+        else:
+            return False
+            # If submission fails, Ryu returns HTTP 400 status.
+            # Catch all for HTTP errors.
+
+
+
+    ###### Modify Group Entries ######
+
+    ## ##
+    def add_group(self, payload):
+
+        '''
+        Description:
+        Add a group entry to the switch.
+
+        Link:
+        http://ryu.readthedocs.io/en/latest/app/ofctl_rest.html#add-a-group-entry
+
+        Arguments:
+        payload: Data payload containing group information to add to the switch.
+
+        Payload structure:
+        Dictionary format. DPID of target is specified in payload. Example:
+            payload = {
+                "dpid": 123456789, "type": "ALL", "group_id": 1,
+                "buckets": [{
+                        "actions": [{
+                                "type": "OUTPUT",
+                                "port": 1
+                            }] }]
+            }
+        See link for details on how to construct payload.
+
+        Return value:
+        Boolean. True if successful, False if error.
+
+        Usage:
+        R = ryuRest()
+        R.add_group(payload)   # Use if statement to check if successful.
+        '''
+
+        # Path: /stats/groupentry/add
+        rest_uri = self.API + "/stats/groupentry/add"
+
+        # Make call to REST API (POST)
+        r = requests.post(rest_uri, json=payload) # payload encoded to JSON
+
+        # DEBUG MODE
+        if self.debug: self.debug_data(rest_uri, payload, "ADD GROUP ENTRY")
+
+        # Ryu returns HTTP 200 status if successful
+        if r.status_code == 200:
+            return True
+        else:
+            return False
+            # If submission fails, Ryu returns HTTP 400 status.
+            # Catch all for HTTP errors.
+
+
+
+    ## ##
+    def modify_group(self, payload):
+
+        '''
+        Description:
+        Modify a group entry to the switch.
+
+        Link:
+        http://ryu.readthedocs.io/en/latest/app/ofctl_rest.html#modify-a-group-entry
+
+        Arguments:
+        payload: Data payload containing group information to match and modify.
+
+        Payload structure:
+        Dictionary format. DPID of target is specified in payload. Example:
+            payload = {
+                "dpid": 123456789, "type": "ALL", "group_id": 1,
+                "buckets": [{
+                        "actions": [{
+                                "type": "OUTPUT",
+                                "port": 1
+                            }] }]
+            }
+        See link for details on how to construct payload.
+
+        Return value:
+        Boolean. True if successful, False if error.
+
+        Usage:
+        R = ryuRest()
+        R.modify_group(payload)   # Use if statement to check if successful.
+        '''
+
+        # Path: /stats/groupentry/modify
+        rest_uri = self.API + "/stats/groupentry/modify"
+
+        # Make call to REST API (POST)
+        r = requests.post(rest_uri, json=payload) # payload encoded to JSON
+
+        # DEBUG MODE
+        if self.debug: self.debug_data(rest_uri, payload, "MODIFY GROUP ENTRY")
+
+        # Ryu returns HTTP 200 status if successful
+        if r.status_code == 200:
+            return True
+        else:
+            return False
+            # If submission fails, Ryu returns HTTP 400 status.
+            # Catch all for HTTP errors.
+
+
+
+    ## ##
+    def delete_group(self, payload):
+
+        '''
+        Description:
+        Delete a group entry to the switch.
+
+        Link:
+        http://ryu.readthedocs.io/en/latest/app/ofctl_rest.html#delete-a-group-entry
+
+        Arguments:
+        payload: Data payload containing group information to match and delete.
+
+        Payload structure:
+        Dictionary format. DPID of target is specified in payload. Example:
+            payload = {
+                "dpid": 123456789, "group_id": 1,
+            }
+
+        Return value:
+        Boolean. True if successful, False if error.
+
+        Usage:
+        R = ryuRest()
+        R.delete_group(payload)   # Use if statement to check if successful.
+        '''
+
+        # Path: /stats/groupentry/delete
+        rest_uri = self.API + "/stats/groupentry/delete"
+
+        # Make call to REST API (POST)
+        r = requests.post(rest_uri, json=payload) # payload encoded to JSON
+
+        # DEBUG MODE
+        if self.debug: self.debug_data(rest_uri, payload, "DELETE GROUP ENTRY")
+
+        # Ryu returns HTTP 200 status if successful
+        if r.status_code == 200:
+            return True
+        else:
+            return False
+            # If submission fails, Ryu returns HTTP 400 status.
+            # Catch all for HTTP errors.
+
+
+
+    ###### Modify Port Entries ######
+
+    ## ##
+    def modify_port(self, payload):
+
+        '''
+        Description:
+        Modify the behavior of the physical port.
+
+        Link:
+        http://ryu.readthedocs.io/en/latest/app/ofctl_rest.html#modify-the-behavior-of-the-port
+
+        Arguments:
+        payload: Data payload containing port information to modify.
+
+        Payload structure:
+        Dictionary format. DPID of target is specified in payload. Example:
+            payload = {
+                "dpid": 123456789, "port_no": 1, "config": 1, "mask": 1
+            }
+        See link for details on how to construct payload.
+
+        Return value:
+        Boolean. True if successful, False if error.
+
+        Usage:
+        R = ryuRest()
+        R.modify_port(payload)   # Use if statement to check if successful.
+        '''
+
+        # Path: /stats/portdesc/modify
+        rest_uri = self.API + "/stats/portdesc/modify"
+
+        # Make call to REST API (POST)
+        r = requests.post(rest_uri, json=payload) # payload encoded to JSON
+
+        # DEBUG MODE
+        if self.debug: self.debug_data(rest_uri, payload, "MODIFY PORT")
+
+        # Ryu returns HTTP 200 status if successful
+        if r.status_code == 200:
+            return True
+        else:
+            return False
+            # If submission fails, Ryu returns HTTP 400 status.
+            # Catch all for HTTP errors.
+
+
+
+    ###### Modify Meter Entries ######
+
+    ## ##
+    def add_meter(self, payload):
+
+        '''
+        Description:
+        Add a meter entry to the switch.
+
+        Link:
+        http://ryu.readthedocs.io/en/latest/app/ofctl_rest.html#add-a-meter-entry
+
+        Arguments:
+        payload: Data payload containing meter information to add to the switch.
+
+        Payload structure:
+        Dictionary format. DPID of target is specified in payload. Example:
+            payload = {
+                "dpid": 123456789, "flags": "KBPS", "meter_id": 1,
+                "bands": [{
+                    "type": "DROP", "rate": 1000
+                }]
+            }
+        See link for details on how to construct payload.
+
+        Return value:
+        Boolean. True if successful, False if error.
+
+        Usage:
+        R = ryuRest()
+        R.add_meter(payload)   # Use if statement to check if successful.
+        '''
+
+        # Path: /stats/meterentry/add
+        rest_uri = self.API + "/stats/meterentry/add"
+
+        # Make call to REST API (POST)
+        r = requests.post(rest_uri, json=payload) # payload encoded to JSON
+
+        # DEBUG MODE
+        if self.debug: self.debug_data(rest_uri, payload, "ADD METER ENTRY")
+
+        # Ryu returns HTTP 200 status if successful
+        if r.status_code == 200:
+            return True
+        else:
+            return False
+            # If submission fails, Ryu returns HTTP 400 status.
+            # Catch all for HTTP errors.
+
+
+
+    ## ##
+    def modify_meter(self, payload):
+
+        '''
+        Description:
+        Modify a meter entry to the switch.
+
+        Link:
+        http://ryu.readthedocs.io/en/latest/app/ofctl_rest.html#modify-a-meter-entry
+
+        Arguments:
+        payload: Data payload containing meter information to match and modify.
+
+        Payload structure:
+        Dictionary format. DPID of target is specified in payload. Example:
+            payload = {
+                "dpid": 123456789, "flags": "KBPS", "meter_id": 1,
+                "bands": [{
+                    "type": "DROP", "rate": 1000
+                }]
+            }
+        See link for details on how to construct payload.
+
+        Return value:
+        Boolean. True if successful, False if error.
+
+        Usage:
+        R = ryuRest()
+        R.modify_meter(payload)   # Use if statement to check if successful.
+        '''
+
+        # Path: /stats/meterentry/modify
+        rest_uri = self.API + "/stats/meterentry/modify"
+
+        # Make call to REST API (POST)
+        r = requests.post(rest_uri, json=payload) # payload encoded to JSON
+
+        # DEBUG MODE
+        if self.debug: self.debug_data(rest_uri, payload, "MODIFY METER ENTRY")
+
+        # Ryu returns HTTP 200 status if successful
+        if r.status_code == 200:
+            return True
+        else:
+            return False
+            # If submission fails, Ryu returns HTTP 400 status.
+            # Catch all for HTTP errors.
+
+
+
+    ## ##
+    def delete_meter(self, payload):
+
+        '''
+        Description:
+        Delete a meter entry to the switch.
+
+        Link:
+        http://ryu.readthedocs.io/en/latest/app/ofctl_rest.html#delete-a-meter-entry
+
+        Arguments:
+        payload: Data payload containing meter information to match and delete.
+
+        Payload structure:
+        Dictionary format. DPID of target is specified in payload. Example:
+            payload = {
+                "dpid": 123456789, "meter_id": 1,
+            }
+
+        Return value:
+        Boolean. True if successful, False if error.
+
+        Usage:
+        R = ryuRest()
+        R.delete_meter(payload)   # Use if statement to check if successful.
+        '''
+
+        # Path: /stats/meterentry/delete
+        rest_uri = self.API + "/stats/meterentry/delete"
+
+        # Make call to REST API (POST)
+        r = requests.post(rest_uri, json=payload) # payload encoded to JSON
+
+        # DEBUG MODE
+        if self.debug: self.debug_data(rest_uri, payload, "DELETE METER ENTRY")
+
+        # Ryu returns HTTP 200 status if successful
+        if r.status_code == 200:
+            return True
+        else:
+            return False
+            # If submission fails, Ryu returns HTTP 400 status.
+            # Catch all for HTTP errors.
+
+
+
+    ###### Modify Controller Role ######
+
+    ## ##
+    def modify_role(self, payload):
+
+        '''
+        Description:
+        Modify the role of the switch.
+
+        Link:
+        http://ryu.readthedocs.io/en/latest/app/ofctl_rest.html#modify-role
+
+        Arguments:
+        payload: Data payload containing role information to modify.
+
+        Payload structure:
+        Dictionary format. DPID of target is specified in payload. Example:
+            payload = {
+                "dpid": 123456789, "role": "MASTER",
+            }
+
+        Return value:
+        Boolean. True if successful, False if error.
+
+        Usage:
+        R = ryuRest()
+        R.set_role(payload)   # Use if statement to check if successful.
+        '''
+
+        # Path: /stats/role
+        rest_uri = self.API + "/stats/role"
+
+        # Make call to REST API (POST)
+        r = requests.post(rest_uri, json=payload) # payload encoded to JSON
+
+        # DEBUG MODE
+        if self.debug: self.debug_data(rest_uri, payload, "MODIFY ROLE")
+
+        # Ryu returns HTTP 200 status if successful
+        if r.status_code == 200:
+            return True
+        else:
+            return False
+            # If submission fails, Ryu returns HTTP 400 status.
+            # Catch all for HTTP errors.
+
+
+
+    #########################################
+    ###        EXPERIMENTER SUPPORT       ###
+    #########################################
+
+    ###### Send a experimenter message ######
+
+    ## ##
+    def send_experimenter(self, DPID, payload):
+
+        '''
+        Description:
+        Send a experimenter message to the switch which specified with Datapath ID in URI.
+
+        Link:
+        http://ryu.readthedocs.io/en/latest/app/ofctl_rest.html#send-a-experimenter-message
+
+        Arguments:
+        DPID: Datapath ID (DPID) of the target switch.
+        payload: payload: Data payload containing the experimenter message to send.
+
+        Payload structure:
+        Dictionary format. DPID of target is specified in payload. Example:
+            payload = {
+                "dpid": 123456789, "experimenter": 1, "exp_type": 1,
+                "data_type": "ascii", "data": "Hello world!"
+             }
+        See link for details on how to construct payload.
+
+        Return value:
+        Boolean. True if successful, False if error.
+
+        Usage:
+        R = ryuRest()
+        R.add_flow(payload)   # Use if statement to check if successful.
+        '''
+
+        # Path: /stats/experimenter/<dpid>
+        rest_uri = self.API + "/stats/flowentry/add/" + DPID
+
+        # Make call to REST API (POST)
+        r = requests.post(rest_uri, json=payload) # payload encoded to JSON
+
+        # DEBUG MODE
+        if self.debug: self.debug_data(rest_uri, payload, "SEND EXPERIMENTER MESSAGE")
+
+        # Ryu returns HTTP 200 status if successful
+        if r.status_code == 200:
+            return True
+        else:
+            return False
+            # If submission fails, Ryu returns HTTP 400 status.
+            # Catch all for HTTP errors.
+
+
+
+
+
+
+
+
 
 
 
@@ -797,22 +1766,23 @@ class ryuRest(object):
 
 
 if __name__ == "__main__":
-    DPID = "123917682136708"
-    R = ryuRest()
 
-    content = R.get_switches()
-    print str(content[0]) + '\n'
+    ### TESTING ###
+    DPID = "123917682136708"
+
+    R = RyuREST()
+
+    #content = R.get_switches()
+    #print str(content[0]) + '\n'
 
     R.get_switch_stats(DPID)
-
     #R.get_flows(DPID)
-
     #R.get_flow_stats(DPID)
     #R.get_table_stats(DPID)
     #R.get_table_features(DPID)
     #R.get_port_stats(DPID)
-    #R.get_port_stats(DPID, 3) # DISABLED [BUG]
-    #R.get_port_stats(DPID, 4) # DISABLED [BUG]
+    #R.get_port_stats(DPID, 3) # DISABLED [Zodiac FX BUG]
+    #R.get_port_stats(DPID, 4) # DISABLED [Zodiac FX BUG]
     #R.get_port_description(DPID)
     #R.get_queue_stats(DPID)
     #R.get_queue_stats(DPID, port=3)
@@ -822,10 +1792,16 @@ if __name__ == "__main__":
     #R.get_queue_config(DPID, 3)         # Restricted to OpenFlow <v1.0 - 1.3
     #R.get_queue_description(DPID)       # Requires OpenFlow v1.4+
     #R.get_queue_description(DPID, 3)    # Requires OpenFlow v1.4+
-    R.get_group_stats(DPID)
-    R.get_group_stats(DPID, 3)
-    R.get_group_description(DPID)
-    R.get_group_features(DPID)
-
-
-    R.get_flows(DPID)
+    #R.get_group_stats(DPID)
+    #R.get_group_stats(DPID, 3)
+    #R.get_group_description(DPID)
+    #R.get_group_features(DPID)
+    #R.get_meter_stats(DPID)
+    #R.get_meter_stats(DPID, 1)
+    #R.get_meter_description(DPID)
+    #R.get_meter_description(DPID, 3)
+    #R.get_meter_description(DPID, 3, 1.3)
+    #R.get_meter_description(DPID, 3, 1.5)      # Will fail. Zodiac FX is not OF v1.5
+    #R.get_meter_features(DPID)
+    #R.get_role(DPID) # DISABLED [RYU REST API BUG]
+    R.send_experimenter()

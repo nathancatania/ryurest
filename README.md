@@ -23,9 +23,9 @@ Allows you to call the RyuSwitch methods directly (although a switch Datapath ID
 
 **2. Run the Ryu controller with REST API enabled.**
 
-   For example, enable REST with the Ryu program `simple_switch`:
+     For example, enable REST with the Ryu program `simple_switch`:
 
-   `$ sudo ryu-manager ryu.app.simple_switch_13 ryu.app.ofctl_rest`
+     `$ sudo ryu-manager ryu.app.simple_switch_13 ryu.app.ofctl_rest`
 
 # INSTALLATION
 PIP support is WIP.

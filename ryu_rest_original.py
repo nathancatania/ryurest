@@ -5,7 +5,7 @@ import sys # Only used to enable debug mode
 # REST API Documentation: http://ryu.readthedocs.io/en/latest/app/ofctl_rest.html
 
 
-# To enable debug mode, run the program and specify the command-line argument "debug" (without the quotes).
+# To enable debug mode, run the program and specify the command-line argument "debug" (without the quotes)
 # Example: ./ryu_rest debug
 
 

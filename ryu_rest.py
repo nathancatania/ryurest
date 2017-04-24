@@ -81,7 +81,12 @@ class RyuREST(object):
         # DEBUG MODE
         if self.debug: self.debug_dump(rest_uri, r, "GET SWITCH INFO")
 
-        return r.json()
+        if r.status_code == 200:
+            return r.json()
+        else:
+            return False
+            # If submission fails, Ryu returns HTTP 400 status.
+            # Catch all for HTTP errors.
 
 
 
@@ -125,7 +130,12 @@ class RyuREST(object):
         # DEBUG MODE
         if self.debug: self.debug_dump(rest_uri, r, "GET SWITCH STATS")
 
-        return r.json()
+        if r.status_code == 200:
+            return r.json()
+        else:
+            return False
+            # If submission fails, Ryu returns HTTP 400 status.
+            # Catch all for HTTP errors.
 
 
 
@@ -260,7 +270,12 @@ class RyuREST(object):
         # DEBUG MODE
         if self.debug: self.debug_dump(rest_uri, r, "GET TABLE STATS")
 
-        return r.json()
+        if r.status_code == 200:
+            return r.json()
+        else:
+            return False
+            # If submission fails, Ryu returns HTTP 400 status.
+            # Catch all for HTTP errors.
 
 
 
@@ -295,7 +310,12 @@ class RyuREST(object):
         # DEBUG MODE
         if self.debug: self.debug_dump(rest_uri, r, "GET TABLE FEATURES")
 
-        return r.json()
+        if r.status_code == 200:
+            return r.json()
+        else:
+            return False
+            # If submission fails, Ryu returns HTTP 400 status.
+            # Catch all for HTTP errors.
 
 
 

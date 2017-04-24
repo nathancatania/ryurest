@@ -17,7 +17,10 @@ Allows you to call the RyuSwitch methods directly (although a switch Datapath ID
 
 # REQUIREMENTS
 1. Install the [*Requests*][requests] library
+
    `$ pip install requests`
+
+   
 2. Run the Ryu controller with REST API enabled.
    For example, enable REST with the Ryu program `simple_switch`:
    `$ sudo ryu-manager ryu.app.simple_switch_13 ryu.app.ofctl_rest`
@@ -26,6 +29,7 @@ Allows you to call the RyuSwitch methods directly (although a switch Datapath ID
 PIP support is WIP.
 In the interim:
 1. Clone this repository:
+
    `$ git clone https://github.com/nathancatania/ryu-rest-python`
 2. Copy either the `ryurest.py` or `ryu_switch.py` modules to your project directory.
 

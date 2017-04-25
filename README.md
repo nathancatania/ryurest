@@ -23,7 +23,7 @@ Allows you to call the RyuSwitch methods directly (although a switch Datapath ID
 
 **2. Run the Ryu controller with REST API enabled.**
 
-     * For example, enable REST with the Ryu program `simple_switch`:
+     * For example, enable REST with the Ryu program `simple_switch`...
      `$ sudo ryu-manager ryu.app.simple_switch_13 ryu.app.ofctl_rest`
 
 # INSTALLATION
@@ -68,12 +68,13 @@ These can be found in the `demos` folder of this repository.
 
 **3. [OPTIONAL] Change the REST API URI**
    * The default location for the Ryu REST API is: `http://localhost:8080`
-   * If Ryu is running on this PC (localhost), then there is no need to change anything.
+   * If Ryu is running on the same PC as the module (localhost), then there is no need to change anything.
    * If the Ryu controller is running on a different machine and/or port, you MUST set the API path within each `RyuSwitch` object created.
      * For example:
      ```python
      switch1 = RyuSwitch( DPID_list[0] )
      switch1.API = "http://192.168.1.30:8080"
+     
      switch2 = RyuSwitch( DPID_list[1] )
      switch2.API = "http://192.168.1.30:8080"
      ```

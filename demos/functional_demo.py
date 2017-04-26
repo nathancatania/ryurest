@@ -1,12 +1,12 @@
-import ryurest
+from ryurest import ryufunc
 
 # If Ryu is running on an external host, you can redefine the API URI (the default is http://localhost:8080)
 #       Example:
-#           >> ryurest.API = "http://192.168.0.10:8080"
+#           >> ryufunc.API = "http://192.168.0.10:8080"
 
 # Get the DPIDs of all switches connected to the controller as an array.
 # The DPID is the "Datapath ID" of an OpenFlow switch connected to a controller.
-DPID_list = ryurest.get_switches()
+DPID_list = ryufunc.get_switches()
 
 # Save the first DPID for the demo
 # Example, DPID = 123917682136708
@@ -15,7 +15,7 @@ DPID = DPID_list[0]
 # Now lets get the flow table of our specific switch (DPID)
 
 # Get flow table of switch
-flows = ryurest.get_flows(DPID)
+flows = ryufunc.get_flows( DPID )
 
 # Print data to screen
 print "\nGET FLOW TABLE FROM SWITCH:"
@@ -33,7 +33,7 @@ print flows  # Dumps JSON data
 
 # If we want a specific value from the JSON data...
 
-# Getspecific value, "duration_sec" == lifetime of flow rule
+# Get a specific value, "duration_sec" (== the lifetime of flow rule in seconds)
 duration_sec = flows[ str(DPID) ][0][ 'duration_sec' ]
 
 # Print data to screen
@@ -52,8 +52,8 @@ flow_rule = {
 }
 
 # Now call the add_flow() method and pass the flow rule dictionary as an argument:
-ryurest.add_flow( flow_rule )
+ryufunc.add_flow( flow_rule )
 
 # Dump the flow table again to see the new flow added:
 print "\nGET UPDATED FLOW TABLE FROM SWITCH:"
-print ryurest.get_flows(DPID)
+print ryufunc.get_flows( DPID )

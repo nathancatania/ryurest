@@ -1,11 +1,11 @@
-from ryuswitch import RyuSwitch
+from ryurest import RyuSwitch
 
 # Instantiate a new switch
 switch1 = RyuSwitch()
 
 # If Ryu is running on an external host, you can redefine the API URI (the default is http://localhost:8080)
 #       Example:
-#           >> ryurest.API = "http://192.168.0.10:8080"
+#           >> switch1.API = "http://192.168.0.10:8080"
 # You will need to do this for each switch instance.
 
 # We will need to set the DPID.

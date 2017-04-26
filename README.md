@@ -16,12 +16,7 @@ Functional approach
 Allows you to call the RyuSwitch methods directly (although a switch Datapath ID (DPID) must be passed as an argument in most cases).
 
 # REQUIREMENTS
-**1. Install the [*Requests*][requests] library**
-
-   `$ pip install requests`
-
-
-**1. Run the Ryu controller with REST API enabled.**
+Run the Ryu controller with REST API enabled.**
 
      `$ sudo ryu-manager ryu.app.simple_switch_13 ryu.app.ofctl_rest`
 
@@ -37,11 +32,14 @@ Alternatively you can either download or clone this repository, place the requir
 `$ git clone https://github.com/nathancatania/ryurest`
 
 ```python
-from ryurest import ryufunc, RyuSwitch
-# imports BOTH the Functional and Object-Orientated modules respectively.
+# imports the functional module
+import ryufunc
+
+# imports the object-orientated module
+from ryuswitch import RySwitch
 ```
 
-You may also need to install the [requests][requests] library if it is not already installed on your machine:
+You may also need to install the [requests][requests] library if it is not already on your machine:
 
 `$ pip install requests`
 

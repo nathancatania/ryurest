@@ -4,7 +4,6 @@
 #######################
 *.note
 *.command
-ryu_rest_original.py
 
 # Compiled source #
 ###################

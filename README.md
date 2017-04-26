@@ -21,32 +21,40 @@ Allows you to call the RyuSwitch methods directly (although a switch Datapath ID
    `$ pip install requests`
 
 
-**2. Run the Ryu controller with REST API enabled.**
+**1. Run the Ryu controller with REST API enabled.**
 
-     * For example, enable REST with the Ryu program `simple_switch`...
      `$ sudo ryu-manager ryu.app.simple_switch_13 ryu.app.ofctl_rest`
 
 # INSTALLATION
-PIP support is WIP.
+## PyPi
+`$ pip install ryurest`
 
-In the interim:
+You may wish to use `sudo` with this command.
 
-   **1. Clone this repository:**
+## From source
+Alternatively you can either download or clone this repository, place the required `ryufunc.py` and/or `ryuswitch.py` modules into your project directory, and import them as per normal.
 
-      `$ git clone https://github.com/nathancatania/ryu-rest-python`
+`$ git clone https://github.com/nathancatania/ryurest`
 
-   **2. Copy either the `ryurest.py` or `ryu_switch.py` modules to your project directory.**
+```python
+from ryurest import ryufunc, RyuSwitch
+# imports BOTH the Functional and Object-Orientated modules respectively.
+```
+
+You may also need to install the [requests][requests] library if it is not already installed on your machine:
+
+`$ pip install requests`
 
 # DEMO
 A demo for each module has been created to assist in usage.
 These can be found in the `demos` folder of this repository.
 
 # USAGE
-## ryu_switch (Object-Orientated module)
-**1. Import this module and the RyuSwitch class into your script**
+## ryuswitch.py (Object-Orientated module)
+**1. Import the `ryurest` module and the `RyuSwitch` class into your script**
 
    ```python
-   from ryu_switch import RyuSwitch
+   from ryurest import RyuSwitch
    ```
 
 **2. Create one or more RyuSwitch objects**
@@ -87,10 +95,54 @@ These can be found in the `demos` folder of this repository.
    flows = switch1.get_flows()
    ```
    * Some methods have optional filters as well.
-   * Consult the `ryu_switch.py` module or the [Ryu REST API documentation][ryu_rest_docs] for more info.
+   * Consult the `ryuswitch.py` module or the [Ryu REST API documentation][ryu_rest_docs] for more info.
 
-## ryurest (functional module)
-TBA
+## ryufunc.py (functional module)
+**1. From the `ryurest` module, import `ryufunc` into your script**
+
+   ```python
+   from ryurest import ryufunc
+   ```
+
+**2. [OPTIONAL] Change the REST API URI**
+   * The default location for the Ryu REST API is: `http://localhost:8080`
+   * If Ryu is running on the same PC as the module (localhost), then there is no need to change anything.
+   * If the Ryu controller is running on a different machine and/or port, you MUST set the API path. This is global for the entire ryufunc namespace.
+     ```python
+     print ryufunc.API
+     # prints: http://localhost:8080
+
+     # Change the default IP and Port
+     ryufunc.API = "http://192.168.0.30:8080"
+     ```
+     * **Warning!** If altering the API path, DO NOT add a trailing '/' at the end or the API call will fail!
+
+**3. [OPTIONAL] Obtain a list of Datapath IDs (DPIDs)**
+   * If you know the DPID(s) of the switch(es) you wish to interact with, you can skip this step.
+   * To return an array containing all of the DPIDs (switches) connected to the Ryu controller, use the get_switches() function:
+
+   ```python
+   DPID_list = ryufunc.get_switches()
+
+   # Prints a list of all DPIDs
+   for DPID in DPID_list:
+      print DPID
+
+   # Access how you would any other array
+   switch1_dpid = DPID_list[0]
+   switch2_dpid = DPID_list[1]
+   # etc...
+   ```
+
+**4. Execute the functions as required**
+   * Once you know the DPID(s) of the connected switch(es), you can start to execute function calls.
+
+   ```python
+   # Gets all flows in flowtable
+   flows = ryufunc.get_flows( switch1_dpid )     # returns JSON
+   ```
+   * Some methods have optional filters.
+   * Consult the `ryuswitch.py` module or the [Ryu REST API documentation][ryu_rest_docs] for more info.
 
 
 

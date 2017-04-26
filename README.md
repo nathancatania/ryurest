@@ -1,4 +1,4 @@
-# ryu-rest-python
+# ryurest
 A Python module to interact with the REST API of the Ryu SDN controller.
 
 # ABOUT
@@ -8,17 +8,17 @@ The modules make use of the Requests framework to interact with the RYU REST API
 
 # MODULES
 Both the modules contain identical functions/methods. Which one you should use depends entirely on how comfortable you are with Python (although it is generally seen as better practice in the community to use OO approaches where possible)
-### ryu_switch
+### ryuswitch
 Object-orientated approach.
 Provides the `RyuSwitch` class to instantiate the physical switches connected to the controller as objects.
-### ryurest
+### ryufunc
 Functional approach
 Allows you to call the RyuSwitch methods directly (although a switch Datapath ID (DPID) must be passed as an argument in most cases).
 
 # REQUIREMENTS
-Run the Ryu controller with REST API enabled.**
+Run the Ryu controller with REST API enabled.
 
-     `$ sudo ryu-manager ryu.app.simple_switch_13 ryu.app.ofctl_rest`
+`$ sudo ryu-manager ryu.app.simple_switch_13 ryu.app.ofctl_rest`
 
 # INSTALLATION
 ## PyPi
@@ -140,7 +140,7 @@ These can be found in the `demos` folder of this repository.
    flows = ryufunc.get_flows( switch1_dpid )     # returns JSON
    ```
    * Some methods have optional filters.
-   * Consult the `ryuswitch.py` module or the [Ryu REST API documentation][ryu_rest_docs] for more info.
+   * Consult the `ryufunc.py` module or the [Ryu REST API documentation][ryu_rest_docs] for more info.
 
 
 

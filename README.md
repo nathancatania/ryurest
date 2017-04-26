@@ -54,7 +54,7 @@ These can be found in the `demos` folder of this repository.
    ```python
    switch1 = RyuSwitch( DPID )
    ```
-   If you do not know any of the DPIDs of the connected switches, you can initialize with no arguments and call the .get_switches() method to return an array of DPIDs. Be sure so assign any object created in this way a DPID manually:
+   If you do not know any of the DPIDs of the connected switches, you can initialize with no arguments and call the .get_switches() method to return an array of DPIDs. Be sure to assign any object created in this way a DPID manually:
    ```python
    # Create a switch
    switch0 = RyuSwitch()
@@ -74,7 +74,7 @@ These can be found in the `demos` folder of this repository.
      ```python
      switch1 = RyuSwitch( DPID_list[0] )
      switch1.API = "http://192.168.1.30:8080"
-     
+
      switch2 = RyuSwitch( DPID_list[1] )
      switch2.API = "http://192.168.1.30:8080"
      ```

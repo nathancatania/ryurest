@@ -1,4 +1,4 @@
-from ryu_switch import RyuSwitch
+from ryuswitch import RyuSwitch
 
 # Instantiate a new switch
 switch1 = RyuSwitch()
